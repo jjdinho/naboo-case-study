@@ -7,6 +7,7 @@ on:
 
 jobs:
   back-end:
+    name: "Back-end: types, lint, format, tests"
     # 22.04: mongodb-memory-server's default MongoDB 6.0.9 has no Ubuntu 24.04 binary
     runs-on: ubuntu-22.04
     defaults:
@@ -19,14 +20,21 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: back-end/package-lock.json
-      - run: npm ci
-      - run: cp .env.dist .env
-      - run: npm run check
-      - run: npx eslint "src/**/*.ts"
-      - run: npx prettier --check "src/**/*.ts"
-      - run: npm test
+      - name: Install dependencies
+        run: npm ci
+      - name: Create .env from .env.dist
+        run: cp .env.dist .env
+      - name: Typecheck
+        run: npm run check
+      - name: Lint
+        run: npx eslint "src/**/*.ts"
+      - name: Format check
+        run: npx prettier --check "src/**/*.ts"
+      - name: Tests
+        run: npm test
 
   front-end:
+    name: "Front-end: build & tests"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,6 +46,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: front-end/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npx vitest run
+      - name: Install dependencies
+        run: npm ci
+      - name: Build (typecheck + lint)
+        run: npm run build
+      - name: Tests
+        run: npx vitest run
