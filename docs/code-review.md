@@ -7,8 +7,8 @@ Review of the existing codebase (2026-09-21). Grouped by urgency; each item name
 - [ ] **Password hash exposed in GraphQL.** `back-end/src/user/user.schema.ts` puts `@Field()` on `password`, so `schema.gql` exposes `User.password: String!` — any client can query the bcrypt hash. Remove the decorator (see also the DTO-split item below).
 - [ ] **Stale cookie breaks the whole site.** The GraphQL context factory inlined in `back-end/src/app.module.ts` throws `UnauthorizedException` when a present token fails to verify, so an expired `jwt` cookie makes even public queries (`getActivities`, `getCities`) fail. Only reject in the guard, for protected operations.
 - [ ] **Broken import.** `front-end/src/services/cities.ts` imports `City` from `@/utils`, but no `City` type exists anywhere in the repo — `tsc --noEmit` (and therefore `next build`) fails on it. Planned fix (verified locally on 2026-09-21, then reverted to keep this branch review-only): define and export `City` in `services/cities.ts` with the geo.api.gouv.fr shape (`nom`, `code`, `departement?: { code, nom }` — `ActivityForm` only uses `nom`) and drop the `@/utils` import; typecheck then passes. Note: the other front-end typecheck error (`EmptyData.tsx` svg import) is a fresh-checkout artifact — gitignored `next-env.d.ts` doesn't exist until the first `next dev`/`next build`, not a real defect.
+- [x] **Seeder runs on every boot in every environment.** `back-end/src/app.service.ts` (`onApplicationBootstrap`) creates accounts with known passwords, including in prod. Gate it to dev.
 - [x] **Regex injection.** `ActivityService.findByCity` passes the raw client string into `$regex` (ReDoS / unexpected matching). Escape the input.
-- [ ] **Seeder runs on every boot in every environment.** `back-end/src/app.service.ts` (`onApplicationBootstrap`) creates accounts with known passwords, including in prod. Gate it to dev.
 
 ## Architecture
 
