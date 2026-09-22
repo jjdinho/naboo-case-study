@@ -61,3 +61,4 @@ Review of the existing codebase (2026-09-21). Grouped by urgency; each item name
 - [ ] Replace the `toBeDefined()`-only specs (`activity/activity.service.spec.ts`, `user/user.service.spec.ts`) with behavior tests through the service interface — in-memory Mongo is already wired.
 - [ ] Cover auth failure paths (wrong password, duplicate signup, expired token) and the `findByCity` `$and`/`$regex` filter logic.
 - [ ] Front-end: test `contexts/authContext.tsx`, the HOCs, and `ActivityForm` (currently untested).
+- [x] CI: GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every PR and push to master — back-end: tsc, eslint, prettier check, jest (needs `.env` copied from `.env.dist`); front-end: `next build` (typecheck + lint), vitest.
