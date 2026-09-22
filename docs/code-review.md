@@ -7,8 +7,8 @@ Review of the existing codebase (2026-09-21). Grouped by urgency; each item name
 - [ ] **Password hash exposed in GraphQL.** `back-end/src/user/user.schema.ts` puts `@Field()` on `password`, so `schema.gql` exposes `User.password: String!` — any client can query the bcrypt hash. Remove the decorator (see also the DTO-split item below).
 - [ ] **Stale cookie breaks the whole site.** The GraphQL context factory inlined in `back-end/src/app.module.ts` throws `UnauthorizedException` when a present token fails to verify, so an expired `jwt` cookie makes even public queries (`getActivities`, `getCities`) fail. Only reject in the guard, for protected operations.
 - [x] **Broken import.** `front-end/src/services/cities.ts` imports `City` from `@/utils`, but no `City` type exists anywhere in the repo — `tsc --noEmit` (and therefore `next build`) fails on it. Planned fix (verified locally on 2026-09-21, then reverted to keep this branch review-only): define and export `City` in `services/cities.ts` with the geo.api.gouv.fr shape (`nom`, `code`, `departement?: { code, nom }` — `ActivityForm` only uses `nom`) and drop the `@/utils` import; typecheck then passes. Note: the other front-end typecheck error (`EmptyData.tsx` svg import) is a fresh-checkout artifact — gitignored `next-env.d.ts` doesn't exist until the first `next dev`/`next build`, not a real defect.
-- [ ] **Regex injection.** `ActivityService.findByCity` passes the raw client string into `$regex` (ReDoS / unexpected matching). Escape the input.
-- [ ] **Seeder runs on every boot in every environment.** `back-end/src/app.service.ts` (`onApplicationBootstrap`) creates accounts with known passwords, including in prod. Gate it to dev.
+- [x] **Seeder runs on every boot in every environment.** `back-end/src/app.service.ts` (`onApplicationBootstrap`) creates accounts with known passwords, including in prod. Gate it to dev.
+- [x] **Regex injection.** `ActivityService.findByCity` passes the raw client string into `$regex` (ReDoS / unexpected matching). Escape the input.
 
 ## Architecture
 
@@ -44,9 +44,9 @@ Review of the existing codebase (2026-09-21). Grouped by urgency; each item name
 
 - [ ] Fold `MeModule`/`MeResolver` (one line: `userService.getById(jwtPayload.id)`) into the user module.
 - [ ] Merge the mirror HOCs `hocs/withAuth.tsx` / `hocs/withoutAuth.tsx` into one.
-- [ ] Delete dead code: `countDocuments` (both services) and `UserService.setDebugMode`/`debugModeEnabled` — zero callers, and its update is silently dropped because `debugModeEnabled` is not in the Mongoose schema (strict mode drops unknown paths). It stays dead even after the Mode debug task, which conditions on role, not a persisted toggle. Removal verified to compile on 2026-09-21, then reverted — kept here as a note. Reclassified 2026-09-21: `ActivityService.findByIds` and the `favoriteActivities` prop in `pages/profil.tsx` are scaffolding for the Favoris task (see Upcoming features) — keep them.
-- [ ] Remove dead module wiring: `Activity` model registered in `user.module.ts` but never injected; `seed.module.ts` provides `UserService`/`ActivityService` while also importing the modules that export them.
-- [ ] Reuse `graphql/fragments/activity.ts` in the `createActivity` mutation instead of re-listing the selection set.
+- [x] Delete dead code: `countDocuments` (both services) and `UserService.setDebugMode`/`debugModeEnabled` — zero callers, and its update is silently dropped because `debugModeEnabled` is not in the Mongoose schema (strict mode drops unknown paths). It stays dead even after the Mode debug task, which conditions on role, not a persisted toggle. Removal verified to compile on 2026-09-21, then reverted — kept here as a note. Reclassified 2026-09-21: `ActivityService.findByIds` and the `favoriteActivities` prop in `pages/profil.tsx` are scaffolding for the Favoris task (see Upcoming features) — keep them.
+- [x] Remove dead module wiring: `Activity` model registered in `user.module.ts` but never injected; `seed.module.ts` provides `UserService`/`ActivityService` while also importing the modules that export them.
+- [x] Reuse `graphql/fragments/activity.ts` in the `createActivity` mutation instead of re-listing the selection set.
 - [ ] Harden the global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); return 409/400 instead of `UnauthorizedException` (401) for duplicate-email signup.
 
 ## Naming / domain language
