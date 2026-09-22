@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
@@ -10,51 +10,21 @@ import { SeedModule } from './seed/seed.module';
 import { UserModule } from './user/user.module';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
-import { PayloadDto } from './auth/types/jwtPayload.dto';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    GraphQLModule.forRootAsync<ApolloDriverConfig>({
+    GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      imports: [JwtModule],
-      inject: [JwtService, ConfigService],
-      useFactory: async (
-        jwtService: JwtService,
-        configService: ConfigService,
-      ) => {
-        const secret = configService.get<string>('JWT_SECRET');
-        return {
-          autoSchemaFile: 'schema.gql',
-          sortSchema: true,
-          playground: true,
-          buildSchemaOptions: { numberScalarMode: 'integer' },
-          context: async ({ req, res }: { req: Request; res: Response }) => {
-            const token =
-              req.headers.jwt ?? (req.cookies && req.cookies['jwt']);
-
-            let jwtPayload: PayloadDto | null = null;
-            if (token) {
-              try {
-                jwtPayload = (await jwtService.verifyAsync(token, {
-                  secret,
-                })) as PayloadDto;
-              } catch {
-                // Invalid or expired token: treat the request as anonymous;
-                // AuthGuard rejects protected operations when jwtPayload is null.
-              }
-            }
-
-            return {
-              jwtPayload,
-              req,
-              res,
-            };
-          },
-        };
-      },
+      autoSchemaFile: 'schema.gql',
+      sortSchema: true,
+      playground: true,
+      buildSchemaOptions: { numberScalarMode: 'integer' },
+      context: ({ req, res }: { req: Request; res: Response }) => ({
+        req,
+        res,
+      }),
     }),
     AuthModule,
     UserModule,
