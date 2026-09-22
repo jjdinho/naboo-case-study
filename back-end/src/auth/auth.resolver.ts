@@ -1,24 +1,28 @@
 import { Resolver, Mutation, Args, Context } from '@nestjs/graphql';
-import { SignInDto, SignInInput, SignUpInput } from './types';
+import { SignInInput, SignUpInput } from './types';
 import { AuthService } from './auth.service';
 import { User } from 'src/user/user.schema';
+
+const cookieOptions = () => ({
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+  domain: process.env.FRONTEND_DOMAIN,
+});
 
 @Resolver('Auth')
 export class AuthResolver {
   constructor(private authService: AuthService) {}
 
-  @Mutation(() => SignInDto)
+  @Mutation(() => User)
   async login(
     @Args('signInInput') loginUserDto: SignInInput,
     @Context() ctx: any,
-  ): Promise<SignInDto> {
-    const data = await this.authService.signIn(loginUserDto);
-    ctx.res.cookie('jwt', data.access_token, {
-      httpOnly: true,
-      domain: process.env.FRONTEND_DOMAIN,
-    });
+  ): Promise<User> {
+    const { user, accessToken } = await this.authService.signIn(loginUserDto);
+    ctx.res.cookie('jwt', accessToken, cookieOptions());
 
-    return data;
+    return user;
   }
 
   @Mutation(() => User)
@@ -30,10 +34,7 @@ export class AuthResolver {
 
   @Mutation(() => Boolean)
   async logout(@Context() ctx: any): Promise<boolean> {
-    ctx.res.clearCookie('jwt', {
-      httpOnly: true,
-      domain: process.env.FRONTEND_DOMAIN,
-    });
+    ctx.res.clearCookie('jwt', cookieOptions());
     return true;
   }
 }

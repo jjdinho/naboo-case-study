@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/user.schema';
 import { UserService } from '../user/user.service';
-import { SignInDto, SignInInput, SignUpInput } from './types';
+import { SignInInput, SignUpInput } from './types';
 import { PayloadDto } from './types/jwtPayload.dto';
 
 @Injectable()
@@ -17,18 +17,19 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signIn({ email, password }: SignInInput): Promise<SignInDto> {
+  async signIn({
+    email,
+    password,
+  }: SignInInput): Promise<{ user: User; accessToken: string }> {
     const user = await this.userService.getByEmail(email);
     const isSamePassword = await bcrypt.compare(password, user.password);
 
     if (!isSamePassword)
       throw new HttpException('Wrong credentials provided', 400);
 
-    const token = await this.generateToken({ user });
+    const accessToken = await this.generateToken({ user });
 
-    await this.userService.updateToken(user.id, token);
-
-    return { access_token: token };
+    return { user, accessToken };
   }
 
   async generateToken({ user }: { user: User }): Promise<string> {
