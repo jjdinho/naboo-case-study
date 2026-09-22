@@ -1,9 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/user.schema';
 import { UserService } from '../user/user.service';
-import { SignInInput, SignUpInput } from './types';
+import { SignInDto, SignInInput, SignUpInput } from './types';
 import { PayloadDto } from './types/jwtPayload.dto';
 
 @Injectable()
@@ -13,20 +17,18 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signIn({
-    email,
-    password,
-  }: SignInInput): Promise<{ user: User; accessToken: string }> {
-    const user = await this.userService.findByEmail(email);
-    if (!user) throw new UnauthorizedException('Wrong credentials provided');
-
+  async signIn({ email, password }: SignInInput): Promise<SignInDto> {
+    const user = await this.userService.getByEmail(email);
     const isSamePassword = await bcrypt.compare(password, user.password);
+
     if (!isSamePassword)
-      throw new UnauthorizedException('Wrong credentials provided');
+      throw new HttpException('Wrong credentials provided', 400);
 
-    const accessToken = await this.generateToken({ user });
+    const token = await this.generateToken({ user });
 
-    return { user, accessToken };
+    await this.userService.updateToken(user.id, token);
+
+    return { access_token: token };
   }
 
   async generateToken({ user }: { user: User }): Promise<string> {

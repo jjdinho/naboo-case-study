@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { AuthService } from './auth.service';
 import { AuthResolver } from './auth.resolver';
-import { AuthGuard } from './auth.guard';
 import { ConfigService } from '@nestjs/config';
 
 @Module({
@@ -17,6 +15,7 @@ import { ConfigService } from '@nestjs/config';
         const expirationTime = configService.get<string>('JWT_EXPIRATION_TIME');
 
         return {
+          global: true,
           secret,
           signOptions: {
             expiresIn: `${expirationTime}s`,
@@ -25,10 +24,7 @@ import { ConfigService } from '@nestjs/config';
       },
     }),
   ],
-  providers: [
-    AuthService,
-    AuthResolver,
-    { provide: APP_GUARD, useClass: AuthGuard },
-  ],
+  providers: [AuthService, AuthResolver],
+  exports: [JwtModule],
 })
 export class AuthModule {}
