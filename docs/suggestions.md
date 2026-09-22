@@ -70,7 +70,7 @@ reasonable here) and set `SameSite=Lax`, plus `secure` in production.
 
 **Tradeoff.** A brief loading state on hard navigations, because auth resolves
 in a round-trip. The fix is SSR-resolved auth: resolve `me` in the shared
-`getServerSideProps` helper (§3) and redirect server-side, which also retires
+`getServerSideProps` helper (§4) and redirect server-side, which also retires
 the `withAuth`/`withoutAuth` HOCs.
 
 > I implemented this, then reverted it (PR #13). It was the right diagnosis and
@@ -79,7 +79,40 @@ the `withAuth`/`withoutAuth` HOCs.
 
 ---
 
-## 2. Split GraphQL types from Mongoose schemas
+## 2. Follow NestJS conventions
+
+**Problem.** Nest already has a designated place for several things this
+codebase hand-rolls. The result isn't just unidiomatic — one of them is
+fail-open.
+
+**Why it matters.** Framework seams are where a Nest developer looks first.
+Work placed somewhere else is invisible to them, and to the framework's own
+wiring.
+
+| Convention | Today |
+|---|---|
+| The guard owns token extraction and verification | ~35 lines of auth logic inlined in the GraphQL context factory in `app.module.ts:20-55` — the root module does auth |
+| Global `APP_GUARD` + `@Public()` opt-out | `@UseGuards(AuthGuard)` repeated at three call sites (`activity.resolver.ts:51,79`, `me.resolver.ts:13`) |
+| `@CurrentUser()` param decorator | Resolvers reach into the context by hand: `context.jwtPayload.id` (`activity.resolver.ts:55,84`, `me.resolver.ts:17`) |
+| One flat file layout per module | `me/resolver/me.resolver.ts` is nested; every other module is flat (`activity/activity.resolver.ts`) |
+| Built-in HTTP exception types | Duplicate-email signup throws `UnauthorizedException` (`auth.service.ts:52`) where Nest ships `ConflictException` |
+
+**The one that isn't cosmetic:** guards are opt-in today, so a new protected
+resolver is unguarded until someone remembers the decorator. Registering
+`AuthGuard` as a global `APP_GUARD` and marking public operations `@Public()`
+inverts that — the default becomes closed, and the exceptions are declared
+where you can see them.
+
+**Suggestion.** Take the rows in order; each is independent and small. Moving
+token handling into the guard (row 1) also removes the reason `app.module.ts`
+imports `JwtService` at all.
+
+**Sequencing.** Row 1 overlaps §1 — settle which transports exist before moving
+the code that reads them, or you will move it twice.
+
+---
+
+## 3. Split GraphQL types from Mongoose schemas
 
 **Problem.** `Activity` and `User` are simultaneously the Mongoose `Document`
 and the GraphQL `@ObjectType`. Persistence fields are exposed by default —
@@ -102,7 +135,7 @@ never be reachable from client input.
 
 ---
 
-## 3. One SSR fetch helper
+## 4. One SSR fetch helper
 
 **Problem.** Six pages copy the same `getServerSideProps` block — `index`,
 `discover`, `my-activities`, `activities/[id]`, `explorer/index`,
@@ -118,7 +151,7 @@ change behaviour; that's the point.
 
 ---
 
-## 4. Deepen the entity services
+## 5. Deepen the entity services
 
 **Problem.** `ActivityService` and `UserService` are mostly 1–3 line
 pass-throughs onto the Mongoose models, so query construction leaks into
@@ -137,7 +170,7 @@ shape is N+1 — one owner lookup per activity in the list.
 
 ---
 
-## 5. Single config seam per side
+## 6. Single config seam per side
 
 **Problem.** The back-end mixes `ConfigService` with raw `process.env`
 (`MONGO_URI` in `app.module.ts`, `FRONTEND_URL` in `main.ts`). The front-end
@@ -151,17 +184,18 @@ and hard-coded URLs mean the front-end can only ever point at one environment.
 
 ---
 
-## 6. Validation and error semantics
+## 7. Validation and error semantics
 
 - Harden the global `ValidationPipe` (`main.ts:11`) with `whitelist`,
   `forbidNonWhitelisted`, `transform`. Unknown fields are currently accepted
-  and passed along — the same permissiveness behind the `role` issue in §2.
-- Duplicate-email signup throws `UnauthorizedException` (401)
-  (`auth.service.ts:52`). It's a conflict, not an auth failure — 409.
+  and passed along — the same permissiveness behind the `role` issue in §3.
+- Duplicate-email signup returns 401 where it means 409 — a conflict, not an
+  auth failure. Listed as a convention row in §2; the semantic point is that
+  the status code is part of the API contract, not just an exception class.
 
 ---
 
-## 7. Naming
+## 8. Naming
 
 One concept, one name, across layers.
 
@@ -186,7 +220,7 @@ consistently followed and currently only discoverable by reading the bodies.
 
 ---
 
-## 8. Test surface
+## 9. Test surface
 
 The service specs started as `toBeDefined()` only. Two now carry real
 coverage — `findByCity` (added with the regex fix, #4) and a create/get
@@ -204,7 +238,7 @@ gaps are just unwritten.
 
 ---
 
-## 9. Smaller items
+## 10. Smaller items
 
 - Fold `MeModule`/`MeResolver` (one line: `userService.getById(...)`) into the
   user module.
