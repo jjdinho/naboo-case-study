@@ -3,20 +3,21 @@ import {
   Query,
   Mutation,
   Args,
+  Context,
   Int,
   Parent,
   ResolveField,
   ID,
 } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { ActivityService } from './activity.service';
-import { CurrentUser } from 'src/auth/current-user.decorator';
-import { Public } from 'src/auth/public.decorator';
-import { PayloadDto } from 'src/auth/types/jwtPayload.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
 import { UserService } from 'src/user/user.service';
 import { Activity } from './activity.schema';
 
 import { CreateActivityInput } from './activity.inputs.dto';
 import { User } from 'src/user/user.schema';
+import { ContextWithJWTPayload } from 'src/auth/types/context';
 
 @Resolver(() => Activity)
 export class ActivityResolver {
@@ -36,33 +37,30 @@ export class ActivityResolver {
     return activity.owner;
   }
 
-  @Public()
   @Query(() => [Activity])
   async getActivities(): Promise<Activity[]> {
     return this.activityService.findAll();
   }
 
-  @Public()
   @Query(() => [Activity])
   async getLatestActivities(): Promise<Activity[]> {
     return this.activityService.findLatest();
   }
 
   @Query(() => [Activity])
+  @UseGuards(AuthGuard)
   async getActivitiesByUser(
-    @CurrentUser() user: PayloadDto,
+    @Context() context: ContextWithJWTPayload,
   ): Promise<Activity[]> {
-    return this.activityService.findByUser(user.id);
+    return this.activityService.findByUser(context.jwtPayload.id);
   }
 
-  @Public()
   @Query(() => [String])
   async getCities(): Promise<string[]> {
     const cities = await this.activityService.findCities();
     return cities;
   }
 
-  @Public()
   @Query(() => [Activity])
   async getActivitiesByCity(
     @Args('city') city: string,
@@ -72,17 +70,17 @@ export class ActivityResolver {
     return this.activityService.findByCity(city, activity, price);
   }
 
-  @Public()
   @Query(() => Activity)
   async getActivity(@Args('id') id: string): Promise<Activity> {
     return this.activityService.findOne(id);
   }
 
   @Mutation(() => Activity)
+  @UseGuards(AuthGuard)
   async createActivity(
-    @CurrentUser() user: PayloadDto,
+    @Context() context: ContextWithJWTPayload,
     @Args('createActivityInput') createActivity: CreateActivityInput,
   ): Promise<Activity> {
-    return this.activityService.create(user.id, createActivity);
+    return this.activityService.create(context.jwtPayload.id, createActivity);
   }
 }

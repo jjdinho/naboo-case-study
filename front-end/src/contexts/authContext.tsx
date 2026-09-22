@@ -51,16 +51,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [logout] = useMutation<LogoutMutation, LogoutMutationVariables>(Logout);
 
   useEffect(() => {
-    getUser()
-      .then((res) => setUser(res.data?.getMe || null))
-      .finally(() => setIsLoading(false));
-  }, [getUser]);
+    const token = localStorage.getItem("token");
+
+    if (!user && token) {
+      getUser()
+        .then((res) => setUser(res.data?.getMe || null))
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const handleSignin = async (input: SignInInput) => {
     try {
       setIsLoading(true);
       const response = await signin({ variables: { signInInput: input } });
-      setUser(response.data?.login || null);
+      const token = response.data?.login?.access_token || "";
+      localStorage.setItem("token", token);
+      await getUser().then((res) => setUser(res.data?.getMe || null));
       router.push("/profil");
     } catch (err) {
       snackbar.error("Une erreur est survenue");
@@ -85,6 +93,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       await logout();
+      localStorage.removeItem("token");
       setUser(null);
       router.push("/");
     } catch (err) {

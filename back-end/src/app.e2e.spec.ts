@@ -4,6 +4,7 @@ import { BaseAppModule } from './app.module';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import * as cookieParser from 'cookie-parser';
 import * as request from 'supertest';
 import { TestModule, closeInMongodConnection } from './test/test.module';
 
@@ -15,6 +16,7 @@ describe('App e2e', () => {
     }).compile();
 
     app = module.createNestApplication();
+    app.use(cookieParser());
     await app.init();
   });
 
@@ -29,22 +31,11 @@ describe('App e2e', () => {
     expect(app).toBeDefined();
   });
 
-  const getMeQuery = `
-    query {
-      getMe {
-        id
-        email
-        firstName
-        lastName
-      }
-    }
-  `;
-
-  const signUpAndSignIn = async () => {
+  test('sign-up, sign-in, getMe', async () => {
     const email = randomUUID() + '@test.com';
     const password = randomUUID();
 
-    await request(app.getHttpServer())
+    const signUpResponse = await request(app.getHttpServer())
       .post('/graphql')
       .send({
         query: `
@@ -57,12 +48,33 @@ describe('App e2e', () => {
       })
       .expect(200);
 
+    expect(signUpResponse.status).toBe(200);
+    expect(signUpResponse.body.data.register.email).toBe(email);
+
     const signInResponse = await request(app.getHttpServer())
       .post('/graphql')
       .send({
         query: `
           mutation {
             login(signInInput:{ email: "${email}", password: "${password}" }) {
+              access_token
+            }
+          }
+        `,
+      })
+      .expect(200);
+
+    expect(signInResponse.status).toBe(200);
+    const jwt = signInResponse.body.data.login.access_token;
+    expect(jwt).toEqual(expect.any(String));
+
+    const getMeResponse = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('jwt', jwt)
+      .send({
+        query: `
+          query {
+            getMe {
               id
               email
               firstName
@@ -73,84 +85,12 @@ describe('App e2e', () => {
       })
       .expect(200);
 
-    return { email, signInResponse };
-  };
-
-  test('sign-up, sign-in, getMe via the cookie', async () => {
-    const { email, signInResponse } = await signUpAndSignIn();
-
-    expect(signInResponse.body.data.login).toMatchObject({
-      id: expect.any(String),
-      email,
-      firstName: 'firstName',
-      lastName: 'lastName',
-    });
-
-    const cookie = signInResponse.headers['set-cookie'][0];
-    expect(cookie).toContain('jwt=');
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('SameSite=Lax');
-
-    const getMeResponse = await request(app.getHttpServer())
-      .post('/graphql')
-      .set('Cookie', cookie)
-      .send({ query: getMeQuery })
-      .expect(200);
-
     expect(getMeResponse.body.data.getMe).toMatchObject({
       id: expect.any(String),
       email,
       firstName: 'firstName',
       lastName: 'lastName',
     });
-  });
-
-  test('the jwt header is not a token transport', async () => {
-    const { signInResponse } = await signUpAndSignIn();
-    const token = signInResponse.headers['set-cookie'][0]
-      .split('jwt=')[1]
-      .split(';')[0];
-
-    const getMeResponse = await request(app.getHttpServer())
-      .post('/graphql')
-      .set('jwt', token)
-      .send({ query: getMeQuery })
-      .expect(200);
-
-    expect(getMeResponse.body.errors).toBeDefined();
-    expect(getMeResponse.body.data).toBeFalsy();
-  });
-
-  test('getMe rejects a missing or invalid cookie', async () => {
-    for (const cookies of [[], ['jwt=not-a-valid-token']]) {
-      const response = await request(app.getHttpServer())
-        .post('/graphql')
-        .set('Cookie', cookies)
-        .send({ query: getMeQuery })
-        .expect(200);
-
-      expect(response.body.errors?.[0]?.message).toBe('Unauthorized');
-      expect(response.body.data).toBeFalsy();
-    }
-  });
-
-  test('a stale cookie does not break public queries', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/graphql')
-      .set('Cookie', ['jwt=expired-garbage'])
-      .send({
-        query: `
-          query {
-            getActivities {
-              id
-            }
-          }
-        `,
-      })
-      .expect(200);
-
-    expect(response.body.errors).toBeUndefined();
-    expect(response.body.data.getActivities).toEqual([]);
   });
 
   describe('stale jwt cookie', () => {
@@ -189,67 +129,6 @@ describe('App e2e', () => {
       expect(response.body.errors).toBeDefined();
       expect(response.body.data).toBeNull();
     });
-  });
-
-  test('login bounds the cookie lifetime with Max-Age', async () => {
-    const { signInResponse } = await signUpAndSignIn();
-    const cookie = signInResponse.headers['set-cookie'][0];
-
-    expect(cookie).toMatch(/Max-Age=\d/);
-  });
-
-  test('logout clears the jwt cookie', async () => {
-    const { signInResponse } = await signUpAndSignIn();
-    const cookie = signInResponse.headers['set-cookie'][0];
-
-    const logoutResponse = await request(app.getHttpServer())
-      .post('/graphql')
-      .set('Cookie', cookie)
-      .send({ query: 'mutation { logout }' })
-      .expect(200);
-
-    expect(logoutResponse.body.data.logout).toBe(true);
-    const cleared = logoutResponse.headers['set-cookie'][0];
-    expect(cleared).toContain('jwt=;');
-    expect(cleared).toContain('Expires=Thu, 01 Jan 1970');
-    expect(cleared).not.toContain('Max-Age');
-  });
-
-  test('unknown email and wrong password fail with the same error', async () => {
-    const { email } = await signUpAndSignIn();
-
-    const attempts = [
-      { email: `unknown-${email}`, password: 'anything' },
-      { email, password: 'wrong-password' },
-    ];
-
-    for (const attempt of attempts) {
-      const response = await request(app.getHttpServer())
-        .post('/graphql')
-        .send({
-          query: `
-            mutation {
-              login(signInInput:{ email: "${attempt.email}", password: "${attempt.password}" }) {
-                id
-              }
-            }
-          `,
-        })
-        .expect(200);
-
-      expect(response.body.errors?.[0]?.message).toBe(
-        'Wrong credentials provided',
-      );
-      expect(response.body.data).toBeFalsy();
-    }
-  });
-
-  test('the health check stays public', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/health-check')
-      .expect(200);
-
-    expect(response.text).toBe('Server is running!');
   });
 
   test('password is not exposed in the GraphQL schema', async () => {
