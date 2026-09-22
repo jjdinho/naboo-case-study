@@ -7,7 +7,8 @@ on:
 
 jobs:
   back-end:
-    runs-on: ubuntu-latest
+    # 22.04: mongodb-memory-server's default MongoDB 6.0.9 has no Ubuntu 24.04 binary
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: back-end
