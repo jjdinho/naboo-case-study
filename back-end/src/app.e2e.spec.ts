@@ -88,4 +88,22 @@ describe('App e2e', () => {
       lastName: 'lastName',
     });
   });
+
+  test('password is not exposed in the GraphQL schema', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query: `
+          query {
+            getMe {
+              password
+            }
+          }
+        `,
+      });
+
+    expect(response.body.errors?.[0]?.extensions?.code).toBe(
+      'GRAPHQL_VALIDATION_FAILED',
+    );
+  });
 });
