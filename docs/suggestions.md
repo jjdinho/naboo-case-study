@@ -56,9 +56,6 @@ Tradeoff: a loading state on hard navigations, since auth costs a round-trip.
 SSR-resolved auth removes it later — resolve `me` in the §4 helper and redirect
 server-side, which also retires the `withAuth`/`withoutAuth` HOCs.
 
-> Implemented, then reverted (#13): right diagnosis, wrong scope — 33
-> file-touches on a subsystem nobody asked me to change.
-
 ## 2. Follow NestJS conventions
 
 Nest has a designated place for several things this codebase hand-rolls, and
