@@ -46,7 +46,7 @@ Review of the existing codebase (2026-09-21). Grouped by urgency; each item name
 - [ ] Merge the mirror HOCs `hocs/withAuth.tsx` / `hocs/withoutAuth.tsx` into one.
 - [x] Delete dead code: `countDocuments` (both services) and `UserService.setDebugMode`/`debugModeEnabled` — zero callers, and its update is silently dropped because `debugModeEnabled` is not in the Mongoose schema (strict mode drops unknown paths). It stays dead even after the Mode debug task, which conditions on role, not a persisted toggle. Removal verified to compile on 2026-09-21, then reverted — kept here as a note. Reclassified 2026-09-21: `ActivityService.findByIds` and the `favoriteActivities` prop in `pages/profil.tsx` are scaffolding for the Favoris task (see Upcoming features) — keep them.
 - [x] Remove dead module wiring: `Activity` model registered in `user.module.ts` but never injected; `seed.module.ts` provides `UserService`/`ActivityService` while also importing the modules that export them.
-- [ ] Reuse `graphql/fragments/activity.ts` in the `createActivity` mutation instead of re-listing the selection set.
+- [x] Reuse `graphql/fragments/activity.ts` in the `createActivity` mutation instead of re-listing the selection set.
 - [ ] Harden the global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`); return 409/400 instead of `UnauthorizedException` (401) for duplicate-email signup.
 
 ## Naming / domain language
