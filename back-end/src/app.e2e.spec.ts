@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
 import { BaseAppModule } from './app.module';
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import * as request from 'supertest';
 import { TestModule, closeInMongodConnection } from './test/test.module';
 
@@ -149,6 +151,44 @@ describe('App e2e', () => {
 
     expect(response.body.errors).toBeUndefined();
     expect(response.body.data.getActivities).toEqual([]);
+  });
+
+  describe('stale jwt cookie', () => {
+    const expiredCookie = async () => {
+      const secret = app.get(ConfigService).get<string>('JWT_SECRET');
+      const token = await new JwtService().signAsync(
+        {
+          id: '652d9a4b8f1b2c3d4e5f6a7b',
+          email: 'stale@test.com',
+          firstName: 'firstName',
+          lastName: 'lastName',
+        },
+        { secret, expiresIn: -60 },
+      );
+      return `jwt=${token}`;
+    };
+
+    test('public queries still succeed', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .set('Cookie', await expiredCookie())
+        .send({ query: 'query { getActivities { id } }' })
+        .expect(200);
+
+      expect(response.body.errors).toBeUndefined();
+      expect(response.body.data.getActivities).toEqual([]);
+    });
+
+    test('protected queries are still rejected', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .set('Cookie', await expiredCookie())
+        .send({ query: 'query { getMe { id } }' })
+        .expect(200);
+
+      expect(response.body.errors).toBeDefined();
+      expect(response.body.data).toBeNull();
+    });
   });
 
   test('password is not exposed in the GraphQL schema', async () => {
