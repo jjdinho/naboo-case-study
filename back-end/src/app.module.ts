@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import * as cookieParser from 'cookie-parser';
 import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -35,7 +36,11 @@ import { Request, Response } from 'express';
   controllers: [AppController],
   providers: [AppService],
 })
-export class BaseAppModule {}
+export class BaseAppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(cookieParser()).forRoutes('*');
+  }
+}
 
 @Module({
   imports: [
