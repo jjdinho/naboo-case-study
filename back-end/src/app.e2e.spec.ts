@@ -191,6 +191,67 @@ describe('App e2e', () => {
     });
   });
 
+  test('login bounds the cookie lifetime with Max-Age', async () => {
+    const { signInResponse } = await signUpAndSignIn();
+    const cookie = signInResponse.headers['set-cookie'][0];
+
+    expect(cookie).toMatch(/Max-Age=\d/);
+  });
+
+  test('logout clears the jwt cookie', async () => {
+    const { signInResponse } = await signUpAndSignIn();
+    const cookie = signInResponse.headers['set-cookie'][0];
+
+    const logoutResponse = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('Cookie', cookie)
+      .send({ query: 'mutation { logout }' })
+      .expect(200);
+
+    expect(logoutResponse.body.data.logout).toBe(true);
+    const cleared = logoutResponse.headers['set-cookie'][0];
+    expect(cleared).toContain('jwt=;');
+    expect(cleared).toContain('Expires=Thu, 01 Jan 1970');
+    expect(cleared).not.toContain('Max-Age');
+  });
+
+  test('unknown email and wrong password fail with the same error', async () => {
+    const { email } = await signUpAndSignIn();
+
+    const attempts = [
+      { email: `unknown-${email}`, password: 'anything' },
+      { email, password: 'wrong-password' },
+    ];
+
+    for (const attempt of attempts) {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: `
+            mutation {
+              login(signInInput:{ email: "${attempt.email}", password: "${attempt.password}" }) {
+                id
+              }
+            }
+          `,
+        })
+        .expect(200);
+
+      expect(response.body.errors?.[0]?.message).toBe(
+        'Wrong credentials provided',
+      );
+      expect(response.body.data).toBeFalsy();
+    }
+  });
+
+  test('the health check stays public', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/health-check')
+      .expect(200);
+
+    expect(response.text).toBe('Server is running!');
+  });
+
   test('password is not exposed in the GraphQL schema', async () => {
     const response = await request(app.getHttpServer())
       .post('/graphql')

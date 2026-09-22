@@ -1,8 +1,4 @@
-import {
-  HttpException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/user.schema';
@@ -21,11 +17,12 @@ export class AuthService {
     email,
     password,
   }: SignInInput): Promise<{ user: User; accessToken: string }> {
-    const user = await this.userService.getByEmail(email);
-    const isSamePassword = await bcrypt.compare(password, user.password);
+    const user = await this.userService.findByEmail(email);
+    if (!user) throw new UnauthorizedException('Wrong credentials provided');
 
+    const isSamePassword = await bcrypt.compare(password, user.password);
     if (!isSamePassword)
-      throw new HttpException('Wrong credentials provided', 400);
+      throw new UnauthorizedException('Wrong credentials provided');
 
     const accessToken = await this.generateToken({ user });
 
