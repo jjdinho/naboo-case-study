@@ -1,4 +1,4 @@
-import { Module, UnauthorizedException } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ActivityModule } from './activity/activity.module';
@@ -41,8 +41,9 @@ import { PayloadDto } from './auth/types/jwtPayload.dto';
                 jwtPayload = (await jwtService.verifyAsync(token, {
                   secret,
                 })) as PayloadDto;
-              } catch (error) {
-                throw new UnauthorizedException(error);
+              } catch {
+                // Invalid or expired token: treat the request as anonymous;
+                // AuthGuard rejects protected operations when jwtPayload is null.
               }
             }
 
