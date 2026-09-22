@@ -67,10 +67,12 @@ describe('App e2e', () => {
     expect(signInResponse.status).toBe(200);
     const jwt = signInResponse.body.data.login.access_token;
     expect(jwt).toEqual(expect.any(String));
+    const cookies = signInResponse.get('Set-Cookie');
+    expect(cookies?.[0]).toContain('jwt=');
 
     const getMeResponse = await request(app.getHttpServer())
       .post('/graphql')
-      .set('jwt', jwt)
+      .set('Cookie', cookies)
       .send({
         query: `
           query {
@@ -91,6 +93,47 @@ describe('App e2e', () => {
       firstName: 'firstName',
       lastName: 'lastName',
     });
+  });
+
+  test('the jwt header is not an auth transport', async () => {
+    const email = randomUUID() + '@test.com';
+    const password = randomUUID();
+
+    await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query: `
+          mutation {
+            register(signUpInput:{ email: "${email}", password: "${password}", firstName: "firstName", lastName: "lastName" }) {
+              email
+            }
+          }
+        `,
+      })
+      .expect(200);
+
+    const signInResponse = await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query: `
+          mutation {
+            login(signInInput:{ email: "${email}", password: "${password}" }) {
+              access_token
+            }
+          }
+        `,
+      })
+      .expect(200);
+    const token = signInResponse.body.data.login.access_token;
+
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('jwt', token)
+      .send({ query: 'query { getMe { id } }' })
+      .expect(200);
+
+    expect(response.body.errors).toBeDefined();
+    expect(response.body.data).toBeNull();
   });
 
   describe('stale jwt cookie', () => {

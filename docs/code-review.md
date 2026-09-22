@@ -13,7 +13,7 @@ Review of the existing codebase (2026-09-21). Grouped by urgency; each item name
 ## Architecture
 
 - [ ] **One auth module of record.** Auth is spread across ~15 files with three token transports (httpOnly cookie, localStorage `token`, `jwt` header) that are never reconciled. **Decided: the cookie is the single transport; the client derives "logged in" from `getMe` (delete, don't build).**
-  - [ ] Back-end: move token extract/verify out of the `app.module.ts` context factory into the auth module, behind the guard (also fixes the stale-cookie site-wide failure above).
+  - [x] Back-end: move token extract/verify out of the `app.module.ts` context factory into the auth module, behind the guard (also fixes the stale-cookie site-wide failure above). Done 2026-09-22: `AuthGuard` reads the `jwt` cookie and verifies it with the auth module's configured `JwtService`; the GraphQL context only carries `req`/`res` now. The `jwt` header transport is dropped per the decision above — e2e covers the cookie sign-in flow (via `Set-Cookie` from `login`) and pins that the header no longer authenticates.
   - [ ] Back-end: `login` returns the `User`, not `access_token` — nothing consumes a token in the body anymore.
   - [ ] Back-end: drop the write-only `user.token` column and `updateToken` (written, never read).
   - [ ] Back-end: shorten `JWT_EXPIRATION_TIME` — it's ~31 years today, and with no revocation the expiry is the only bound on a stolen token. Set `SameSite=Lax` (+ `secure` in prod) on the cookie in `auth.resolver.ts`.
