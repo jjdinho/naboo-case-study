@@ -4,6 +4,9 @@ import { Model } from 'mongoose';
 import { Activity } from './activity.schema';
 import { CreateActivityInput } from './activity.inputs.dto';
 
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 @Injectable()
 export class ActivityService {
   constructor(
@@ -58,7 +61,9 @@ export class ActivityService {
         $and: [
           { city },
           ...(price ? [{ price }] : []),
-          ...(activity ? [{ name: { $regex: activity, $options: 'i' } }] : []),
+          ...(activity
+            ? [{ name: { $regex: escapeRegExp(activity), $options: 'i' } }]
+            : []),
         ],
       })
       .exec();
