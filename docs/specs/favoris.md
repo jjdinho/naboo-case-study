@@ -82,7 +82,7 @@ On the front-end:
 ## Plan
 
 Four PRs, in order. Open one, wait for it to be reviewed and merged, then open
-the next.
+the next. Alternative: stack the PRs, based on the human driver's preferences.
 
 ### 1. Run input validation in the e2e tests
 
