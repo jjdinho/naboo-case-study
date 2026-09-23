@@ -96,9 +96,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      // Before the request, so a page loading now doesn't fetch this user back.
-      localStorage.removeItem("token");
       await logout();
+      localStorage.removeItem("token");
       // Forget this user's data, so the next one to sign in can't see it.
       await client.clearStore();
       setUser(null);

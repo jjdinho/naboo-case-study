@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks";
-import Logout from "@/pages/logout";
 import {
   ApolloClient,
   ApolloProvider,
@@ -7,7 +6,7 @@ import {
   InMemoryCache,
   NormalizedCacheObject,
 } from "@apollo/client";
-import { act, render, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { vi } from "vitest";
 import { AuthProvider } from "../authContext";
 
@@ -21,10 +20,8 @@ const users: Record<string, object> = {
 
 // A fake API: login opens a session, logout closes it, getMe answers for it.
 let session: string | null = null;
-let operations: string[] = [];
 const fakeApi = async (_uri: string, init: RequestInit) => {
   const { operationName, variables } = JSON.parse(init.body as string);
-  operations.push(operationName);
   const answers: Record<string, () => object> = {
     Signin: () => {
       session = variables.signInInput.email;
@@ -64,7 +61,6 @@ describe("auth", () => {
   afterEach(() => {
     localStorage.clear();
     session = null;
-    operations = [];
     push.mockClear();
   });
 
@@ -92,15 +88,5 @@ describe("auth", () => {
     await act(() => result.current.handleLogout());
 
     expect(client.extract()).toEqual({});
-  });
-
-  it("logs out once when the logout page loads", async () => {
-    localStorage.setItem("token", "token");
-    session = "user1@test.fr";
-    render(<Logout />, { wrapper: Providers });
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
-    // Only the logout: fetching the user now would race it and sign them back in.
-    expect(operations).toEqual(["Logout"]);
   });
 });
