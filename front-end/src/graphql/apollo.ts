@@ -7,4 +7,6 @@ export const graphqlClient = new ApolloClient({
     credentials: "include",
   }),
   ssrMode: typeof window === "undefined",
+  // Every server request shares this client: never answer from another's cache.
+  defaultOptions: { query: { fetchPolicy: "no-cache" } },
 });
