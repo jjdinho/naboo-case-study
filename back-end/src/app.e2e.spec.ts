@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
 import { BaseAppModule } from './app.module';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as cookieParser from 'cookie-parser';
@@ -17,6 +17,7 @@ describe('App e2e', () => {
 
     app = module.createNestApplication();
     app.use(cookieParser());
+    app.useGlobalPipes(new ValidationPipe());
     await app.init();
   });
 
@@ -91,6 +92,23 @@ describe('App e2e', () => {
       firstName: 'firstName',
       lastName: 'lastName',
     });
+  });
+
+  test('sign-up rejects a malformed email', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query: `
+          mutation {
+            register(signUpInput:{ email: "not-an-email", password: "password", firstName: "firstName", lastName: "lastName" }) {
+              email
+            }
+          }
+        `,
+      })
+      .expect(200);
+
+    expect(response.body.errors?.[0]?.extensions?.code).toBe('BAD_REQUEST');
   });
 
   describe('stale jwt cookie', () => {
