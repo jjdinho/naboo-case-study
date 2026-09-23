@@ -65,8 +65,7 @@ Front-end:
 - **No code path creates an admin.** `createUser` builds the document from the
   four signup fields instead of spreading its input, and has no `role`
   argument. A stray `role` reaching it can't grant admin, and no caller can
-  ask for one. Promoting a user is a manual database update, documented in the
-  readme.
+  ask for one. Promoting a user is a manual database update.
 - **The admin check is a display rule.** `createdAt` is already public in the
   API; hiding it is presentation, not access control. Non-admins still receive
   it. A genuinely sensitive field would need a server-side check.
@@ -116,8 +115,7 @@ the next. Alternative: stack the PRs, based on the human driver's preferences.
 ### 1. Take `role` out of `createUser`'s input
 
 `createUser(input)` picks the four signup fields from `input` and never sets
-the role. The seeder promotes its admin directly in the database. The readme
-shows how to promote a user by hand.
+the role. The seeder promotes its admin directly in the database.
 
 Done when:
 
