@@ -37,6 +37,7 @@ change, and what it would cost.
 | `createUser` stored a `role` passed in its input; it now never sets one | `user/user.service.ts` | #28 |
 | Every activity owner's email was public through `Activity.owner` | `user/user.schema.ts` | #30 |
 | Signing in after a logout showed the previous user, from the browser's cache | `contexts/authContext.tsx` | #33 |
+| Logging out sent a request on every render of the `/logout` page; it's now a menu action | `routes.ts`, `components/Topbar/MenuItem.tsx` | #34 |
 
 Paths below are relative to `back-end/src/` or `front-end/src/`.
 
