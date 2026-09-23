@@ -1,6 +1,6 @@
 # Code review — suggestions
 
-Review of `naboo-case-study`, 2026-09-22, updated 2026-09-23 after Favoris.
+This is a living document which gets updated as work gets done.
 Contained defects are fixed and merged (table below). The rest is grouped into
 seven themes, ordered by value: the pattern behind a set of findings, what would
 change, and what it would cost.
