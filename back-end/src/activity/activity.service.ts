@@ -35,8 +35,13 @@ export class ActivityService {
     return activity;
   }
 
+  // $in ignores the order of `ids`, so restore it; unknown ids are skipped.
   async findByIds(ids: string[]): Promise<Activity[]> {
-    return this.activityModel.find({ _id: { $in: ids } }).exec();
+    const activities = await this.activityModel
+      .find({ _id: { $in: ids } })
+      .exec();
+    const byId = new Map(activities.map((activity) => [activity.id, activity]));
+    return ids.flatMap((id) => byId.get(id) ?? []);
   }
 
   async create(userId: string, data: CreateActivityInput): Promise<Activity> {
