@@ -50,3 +50,14 @@ npm run generate-types
 
 email: user1@test.fr
 password: user1
+
+admin (seeded in development)
+
+email: admin@test.fr
+password: admin
+
+The app never creates admins. To promote a user, set its role in MongoDB:
+
+```bash
+mongosh "$MONGO_URI" --eval 'db.users.updateOne({ email: "someone@example.com" }, { $set: { role: "admin" } })'
+```

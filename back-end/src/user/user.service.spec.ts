@@ -55,7 +55,7 @@ describe('UserService', () => {
     expect(user.role).toBe('user');
   });
 
-  it('creates an admin when asked to', async () => {
+  it('cannot be asked for an admin', async () => {
     const user = await userService.createUser(
       {
         email: randomUUID() + '@test.com',
@@ -63,9 +63,10 @@ describe('UserService', () => {
         firstName: 'firstName',
         lastName: 'lastName',
       },
+      // @ts-expect-error createUser takes no role: admins are set by hand.
       'admin',
     );
 
-    expect(user.role).toBe('admin');
+    expect(user.role).toBe('user');
   });
 });

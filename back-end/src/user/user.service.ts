@@ -32,17 +32,19 @@ export class UserService {
     return user;
   }
 
-  async createUser(
-    { email, password, firstName, lastName }: SignUpInput,
-    role: User['role'] = 'user',
-  ): Promise<User> {
+  // Never sets role: every user starts as 'user', and admins are set by hand.
+  async createUser({
+    email,
+    password,
+    firstName,
+    lastName,
+  }: SignUpInput): Promise<User> {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new this.userModel({
       email,
       password: hashedPassword,
       firstName,
       lastName,
-      role,
     });
     return user.save();
   }
