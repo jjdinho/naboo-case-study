@@ -10,7 +10,7 @@ interface ActivityProps {
 
 export function Activity({ activity }: ActivityProps) {
   const { classes } = useGlobalStyles();
-  const debugMode = useDebugMode();
+  const { debugMode } = useDebugMode();
 
   return (
     <Grid.Col span={4}>
