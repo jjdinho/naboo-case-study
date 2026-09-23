@@ -4,7 +4,6 @@ const Signup = gql`
   mutation Signup($signUpInput: SignUpInput!) {
     register(signUpInput: $signUpInput) {
       id
-      email
       firstName
       lastName
     }

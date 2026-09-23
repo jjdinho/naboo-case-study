@@ -54,7 +54,7 @@ describe('App e2e', () => {
         query: `
           mutation {
             register(signUpInput:{ email: "${email}", password: "${password}", firstName: "firstName", lastName: "lastName" }) {
-              email
+              id
             }
           }
         `,
@@ -62,7 +62,7 @@ describe('App e2e', () => {
       .expect(200);
 
     expect(signUpResponse.status).toBe(200);
-    expect(signUpResponse.body.data.register.email).toBe(email);
+    expect(signUpResponse.body.data.register.id).toEqual(expect.any(String));
 
     const signInResponse = await request(app.getHttpServer())
       .post('/graphql')
@@ -136,7 +136,7 @@ describe('App e2e', () => {
         query: `
           mutation {
             register(signUpInput:{ email: "not-an-email", password: "password", firstName: "firstName", lastName: "lastName" }) {
-              email
+              id
             }
           }
         `,
@@ -185,7 +185,7 @@ describe('App e2e', () => {
   });
 
   // User is also Activity.owner, which anyone can list.
-  test.each(['password', 'favoriteActivityIds', 'role'])(
+  test.each(['email', 'password', 'favoriteActivityIds', 'role'])(
     '%s is not exposed on the shared User type',
     async (field) => {
       const response = await request(app.getHttpServer())
