@@ -33,6 +33,7 @@ change, and what it would cost.
 | No CI | `.github/workflows/ci.yml` | #8 |
 | Stale cookie broke *public* queries site-wide | `app.module.ts` | #9 |
 | Schema and front-end types could drift from the resolvers unnoticed | `.github/workflows/ci.yml` | #16 |
+| Server-rendered pages shared cached query results across users | `graphql/apollo.ts` | #26 |
 
 Paths below are relative to `back-end/src/` or `front-end/src/`.
 
@@ -146,18 +147,16 @@ mount, login and logout) and the HOCs.
 
 ## 3. Front-end data flow and naming
 
-**The pattern.** Six pages each copy the same `getServerSideProps` block, and
-all of them call one module-level Apollo client whose cache every request
-shares. `query` reads that cache first. Against a production build on
-2026-09-23:
+**The pattern.** Six pages each copy the same `getServerSideProps` block, all
+through one module-level Apollo client that every request shares, and each copy
+decides for itself what to forward and what to do on failure.
 
-- `/my-activities` showed a second user the first user's activities. A
-  logged-out request got them too, in the page's HTML, before `withAuth`
-  redirected.
-- Server-rendered lists (home, discover, explorer) didn't show a new activity
-  until the server restarted.
-- On a cold cache, `/my-activities` returns HTTP 500 when logged out: its query
-  throws before `withAuth` can redirect in the browser.
+- Until #26, that client answered from its cache: `/my-activities` showed a
+  second user the first user's activities, and server-rendered lists stayed
+  stale until restart. A `no-cache` default fixed it; the client is still
+  shared.
+- `/my-activities` returns HTTP 500 when logged out: its query throws before
+  `withAuth` can redirect in the browser.
 - Only `my-activities` and `activities/[id]` forward the cookie, so a page that
   forgets renders logged-out for a logged-in user.
 
@@ -168,9 +167,7 @@ matched with its document's types by hand.
 
 - One server-side fetch helper: a new client per request, the cookie always
   forwarded, and an unauthenticated error turned into a redirect to `/signin`.
-- Until then, one line in `graphql/apollo.ts` stops the leak and the stale
-  lists: `defaultOptions: { query: { fetchPolicy: "no-cache" } }`. Tested
-  against the same production build.
+  A client per request makes #26's isolation structural instead of a setting.
 - Documents carry their types. CI already fails when the schema or generated
   types drift (#16); what it can't see is a hook given the wrong document's
   types. graphql-codegen's `client-preset` generates `TypedDocumentNode`s, so
@@ -198,19 +195,18 @@ registry (Apollo GraphOS, GraphQL Hive), persisted queries and expand-contract
 changes (add, deprecate, migrate, drain, remove) earn their keep. Not worth it
 with one repo and one deploy.
 
-**Effect on the project.** One user's data can't reach another, lists are
-current, a logged-out visitor gets a redirect instead of a 500, and
-server-resolved auth becomes possible (theme 2). The one-line fix touches one
-file and should ship now. The helper touches seven: itself and the six pages,
-four of which change behaviour — that's the point. Every server render then
-hits the API, as it should. `client-preset`
+**Effect on the project.** A logged-out visitor gets a redirect instead of a
+500, every page sees the user, server-resolved auth becomes possible (theme 2),
+and keeping users apart no longer rests on one fetch-policy line. The helper
+touches seven files: itself and the six pages, four of which change behaviour —
+that's the point. `client-preset`
 is a mechanical change across all 15 hook and `query` calls; nothing depends on
 it. Do it before the renames, so the compiler checks them.
 
 **Evidence.**
 
-- `graphql/apollo.ts:3` — the shared client; `pages/_app.tsx:14` — also the
-  browser's.
+- `graphql/apollo.ts:3` — the shared client, `:11` — its `no-cache` default;
+  `pages/_app.tsx:14` — also the browser's.
 - `getServerSideProps` in six pages; the cookie forwarded at
   `pages/my-activities.tsx:27` and `pages/activities/[id].tsx:28` only.
 - `contexts/authContext.tsx:48` — types matched to `GetUser` by hand.
@@ -218,10 +214,10 @@ it. Do it before the renames, so the compiler checks them.
   `access_token`.
 - `pages/activities/[id].tsx:40` — the `<title>`.
 
-**How you'd verify it.** Call one page's `getServerSideProps` twice with
-different cookies against a stubbed API and assert different results — that
-pins the leak. A logged-out call returns a redirect rather than throwing. Test
-`ActivityForm`, which has no coverage.
+**How you'd verify it.** #26's test sends two cookies through the shared client
+and expects two answers; with the helper, it moves to the helper. A logged-out
+call returns a redirect rather than throwing. Test `ActivityForm`, which has no
+coverage.
 
 ## 4. Put each rule in the layer that owns it
 
