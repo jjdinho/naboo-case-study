@@ -245,7 +245,37 @@ only then remove it. Never remove-and-replace in a single deploy.
 None of this is worth adopting today — one repo, one deploy, no third-party
 clients, and no traffic to mine.
 
-## 11. Smaller items
+## 11. Dependencies
+
+`npm audit --omit=dev`, 2026-09-23: 48 advisories on the back-end (9 critical,
+25 high), 8 on the front-end (2 critical). Most of the back-end goes away
+without a major bump; the front-end is almost all Next.
+
+- **Within current ranges.** Three back-end dependencies are imported nowhere:
+  `@apollo/gateway`, `ts-morph`, `class-transformer-validator`. Dropping them
+  and running `npm update` takes the back-end to 19 (1 critical, 6 high);
+  `npm audit fix` takes the front-end to 3. One small PR. The lockfile diff is
+  large, so the test suite is what vouches for it.
+- **Back-end majors.** The critical left is `tar`, via bcrypt 5's
+  `node-pre-gyp`. bcrypt 6 ships prebuilt binaries instead, so it also loads
+  under npm's `ignore-scripts`, where bcrypt 5 fails to. The other highs
+  are multer, lodash and ws under the Nest 10 packages; Nest 10 → 12 moves
+  every `@nestjs/*` package together.
+- **Next 13.** 35 advisories, and staying on 13 doesn't fix them: 13.5.11, the
+  last 13.x, still carries 31. About two-thirds need a feature this app doesn't
+  use (App Router, Server Actions, middleware), so the exposure is smaller than
+  the count. But the only real fix is a current major, and that is a project,
+  not a PR.
+- **Not everything behind is a problem.** Mantine is three majors behind with no
+  advisories, and 7 replaced Emotion with CSS modules, so every styled
+  component changes. Leave it until something forces it.
+
+To keep this from recurring: Dependabot security updates for the backlog, and
+`actions/dependency-review-action` on PRs, which fails only when the PR itself
+adds a vulnerable dependency. A plain `npm audit` gate would go red on
+advisories published overnight, against PRs that didn't touch dependencies.
+
+## 12. Smaller items
 
 - Fold `MeModule`/`MeResolver` (one line: `userService.getById(...)`) into the
   user module.
