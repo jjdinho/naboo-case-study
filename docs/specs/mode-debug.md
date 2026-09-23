@@ -38,8 +38,8 @@ Back-end:
 - `getMe: Me!`. `Me` has the fields `getMe` returns today (`id`, `firstName`,
   `lastName`, `email`) plus `role: Role!`. `User`, still `Activity.owner`, gains
   no field.
-- `createUser` takes the role as its own argument, defaulting to `user`. Only
-  the seeder passes `admin`.
+- `createUser` never sets the role, so every new user is a `user`. Admins are
+  promoted by hand in the database; the dev seeder does the same for its admin.
 
 Front-end:
 
@@ -62,9 +62,11 @@ Front-end:
 - **A `Role` enum, not a string or an `isAdmin` flag.** The role is the stored
   concept; the front-end decides what admin unlocks. Codegen emits the enum, so
   the card compares against `Role.Admin`, not a string literal.
-- **`role` never comes from client input.** `createUser` builds the document
-  from the four signup fields and an explicit `role` argument instead of
-  spreading its input. A stray `role` reaching it can no longer grant admin.
+- **No code path creates an admin.** `createUser` builds the document from the
+  four signup fields instead of spreading its input, and has no `role`
+  argument. A stray `role` reaching it can't grant admin, and no caller can
+  ask for one. Promoting a user is a manual database update, documented in the
+  readme.
 - **The admin check is a display rule.** `createdAt` is already public in the
   API; hiding it is presentation, not access control. Non-admins still receive
   it. A genuinely sensitive field would need a server-side check.
@@ -103,6 +105,8 @@ Front-end:
   type; the rest is a review recommendation.
 - **No `GetUser` → `GetMe` rename.** It's a review recommendation, due after
   typed documents so the compiler checks it.
+- **No way to manage admins in the app.** There are few admins and they change
+  rarely. An admin-only, audited mutation is a follow-up if that changes.
 
 ## Plan
 
@@ -111,15 +115,18 @@ the next. Alternative: stack the PRs, based on the human driver's preferences.
 
 ### 1. Take `role` out of `createUser`'s input
 
-`createUser(input, role = 'user')` picks the four signup fields from `input`.
-The seeder passes `'admin'` for the admin.
+`createUser(input)` picks the four signup fields from `input` and never sets
+the role. The seeder promotes its admin directly in the database. The readme
+shows how to promote a user by hand.
 
 Done when:
 
 - A service test shows a `role` smuggled into the input is ignored, and fails
   before the fix.
-- A service test shows `createUser(input, 'admin')` creates an admin.
-- On a fresh database, the seeded admin is stored with role `admin`.
+- A service test shows `createUser` can't be asked for an admin, at compile
+  time and at runtime.
+- A seeder test shows it stores the admin with role `admin` and the user with
+  role `user`.
 
 ### 2. Expose the current user's role
 
