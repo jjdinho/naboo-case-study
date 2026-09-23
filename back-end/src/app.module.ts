@@ -5,6 +5,7 @@ import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { FavoriteModule } from './favorite/favorite.module';
 import { MeModule } from './me/me.module';
 import { SeedModule } from './seed/seed.module';
 import { UserModule } from './user/user.module';
@@ -60,6 +61,7 @@ import { PayloadDto } from './auth/types/jwtPayload.dto';
     UserModule,
     MeModule,
     ActivityModule,
+    FavoriteModule,
     SeedModule,
   ],
   controllers: [AppController],

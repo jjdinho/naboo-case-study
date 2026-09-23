@@ -1,20 +1,12 @@
-import { PageTitle } from "@/components";
-import { graphqlClient } from "@/graphql/apollo";
+import { EmptyData, FavoriteList, PageTitle } from "@/components";
 import { withAuth } from "@/hocs";
-import { useAuth } from "@/hooks";
+import { useAuth, useFavoriteActivities } from "@/hooks";
 import { Avatar, Flex, Text } from "@mantine/core";
-import { GetServerSideProps } from "next";
 import Head from "next/head";
 
-interface ProfileProps {
-  favoriteActivities: {
-    id: string;
-    name: string;
-  }[];
-}
-
-const Profile = (props: ProfileProps) => {
+const Profile = () => {
   const { user } = useAuth();
+  const { favorites, loading, remove } = useFavoriteActivities();
 
   return (
     <>
@@ -33,6 +25,12 @@ const Profile = (props: ProfileProps) => {
           <Text>{user?.lastName}</Text>
         </Flex>
       </Flex>
+      <PageTitle title="Mes favoris" />
+      {favorites.length > 0 ? (
+        <FavoriteList favorites={favorites} onRemove={remove} />
+      ) : (
+        !loading && <EmptyData />
+      )}
     </>
   );
 };
