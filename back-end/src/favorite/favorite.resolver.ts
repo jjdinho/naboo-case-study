@@ -3,7 +3,10 @@ import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Activity } from 'src/activity/activity.schema';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { ContextWithJWTPayload } from 'src/auth/types/context';
-import { FavoriteActivityArgs } from './favorite.args.dto';
+import {
+  FavoriteActivityArgs,
+  ReorderFavoriteActivitiesArgs,
+} from './favorite.args.dto';
 import { FavoriteService } from './favorite.service';
 
 @Resolver()
@@ -32,5 +35,13 @@ export class FavoriteResolver {
     @Args() { activityId }: FavoriteActivityArgs,
   ): Promise<Activity[]> {
     return this.favoriteService.remove(context.jwtPayload.id, activityId);
+  }
+
+  @Mutation(() => [Activity])
+  async reorderFavoriteActivities(
+    @Context() context: ContextWithJWTPayload,
+    @Args() { activityIds }: ReorderFavoriteActivitiesArgs,
+  ): Promise<Activity[]> {
+    return this.favoriteService.reorder(context.jwtPayload.id, activityIds);
   }
 }

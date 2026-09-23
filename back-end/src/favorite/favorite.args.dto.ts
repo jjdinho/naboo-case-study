@@ -7,3 +7,10 @@ export class FavoriteActivityArgs {
   @IsMongoId()
   activityId!: string;
 }
+
+@ArgsType()
+export class ReorderFavoriteActivitiesArgs {
+  @Field(() => [ID])
+  @IsMongoId({ each: true })
+  activityIds!: string[];
+}

@@ -6,9 +6,12 @@ import {
   GetFavoriteActivitiesQueryVariables,
   RemoveFavoriteActivityMutation,
   RemoveFavoriteActivityMutationVariables,
+  ReorderFavoriteActivitiesMutation,
+  ReorderFavoriteActivitiesMutationVariables,
 } from "@/graphql/generated/types";
 import AddFavoriteActivity from "@/graphql/mutations/favorite/addFavoriteActivity";
 import RemoveFavoriteActivity from "@/graphql/mutations/favorite/removeFavoriteActivity";
+import ReorderFavoriteActivities from "@/graphql/mutations/favorite/reorderFavoriteActivities";
 import GetFavoriteActivities from "@/graphql/queries/favorite/getFavoriteActivities";
 import { ApolloCache, useMutation, useQuery } from "@apollo/client";
 import { useSnackbar } from "./useSnackbar";
@@ -50,11 +53,26 @@ export function useFavoriteActivities() {
       writeFavorites(cache, data?.removeFavoriteActivity),
     onError,
   });
+  const [reorder] = useMutation<
+    ReorderFavoriteActivitiesMutation,
+    ReorderFavoriteActivitiesMutationVariables
+  >(ReorderFavoriteActivities, {
+    update: (cache, { data }) =>
+      writeFavorites(cache, data?.reorderFavoriteActivities),
+    onError,
+  });
 
   return {
     favorites: data?.getFavoriteActivities ?? [],
     loading,
     add: (activityId: string) => add({ variables: { activityId } }),
     remove: (activityId: string) => remove({ variables: { activityId } }),
+    // Optimistic, so the dropped item doesn't jump back while the server
+    // confirms; Apollo rolls it back if the mutation fails.
+    reorder: (favorites: ActivityFragment[]) =>
+      reorder({
+        variables: { activityIds: favorites.map((favorite) => favorite.id) },
+        optimisticResponse: { reorderFavoriteActivities: favorites },
+      }),
   };
 }
