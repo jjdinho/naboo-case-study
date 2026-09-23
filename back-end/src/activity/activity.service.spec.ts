@@ -43,4 +43,28 @@ describe('ActivityService', () => {
       expect(await service.findByCity('Paris', 'K.y.k')).toHaveLength(0);
     });
   });
+
+  describe('findByIds', () => {
+    it('returns activities in the order of the ids, skipping unknown ones', async () => {
+      const owner = new Types.ObjectId().toString();
+      const [kayak, yoga] = await Promise.all(
+        ['Kayak', 'Yoga'].map((name) =>
+          service.create(owner, {
+            name,
+            city: 'Paris',
+            description: 'Description',
+            price: 10,
+          }),
+        ),
+      );
+      const unknown = new Types.ObjectId().toString();
+
+      const activities = await service.findByIds([yoga.id, unknown, kayak.id]);
+
+      expect(activities.map((activity) => activity.name)).toEqual([
+        'Yoga',
+        'Kayak',
+      ]);
+    });
+  });
 });
