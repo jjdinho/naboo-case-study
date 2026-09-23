@@ -1,6 +1,7 @@
 import gql from "graphql-tag";
 
-// Fetches the current user as Me, not the public User type. The name predates Me.
+// Fetches the current user as Me, not the public User type. The name predates
+// Me; renaming it GetMe is a recommendation in docs/suggestions.md (theme 3).
 const GetUser = gql`
   query GetUser {
     getMe {
