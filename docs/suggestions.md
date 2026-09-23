@@ -36,6 +36,8 @@ change, and what it would cost.
 | Server-rendered pages shared cached query results across users | `graphql/apollo.ts` | #26 |
 | `createUser` stored a `role` passed in its input; it now never sets one | `user/user.service.ts` | #28 |
 | Every activity owner's email was public through `Activity.owner` | `user/user.schema.ts` | #30 |
+| Signing in after a logout showed the previous user, from the browser's cache | `contexts/authContext.tsx` | #33 |
+| The logout page sent a logout request on every render | `pages/logout.tsx` | #33 |
 
 Paths below are relative to `back-end/src/` or `front-end/src/`.
 
@@ -128,7 +130,7 @@ same code moves twice; `@Public()` is independent and the cheapest step.
 
 **Evidence.**
 
-- `app.module.ts:37` — the header branch; `contexts/authContext.tsx:54,70,96`
+- `app.module.ts:37` — the header branch; `contexts/authContext.tsx:58,74,100`
   — localStorage; `user/user.schema.ts:36` and `auth/auth.service.ts:29` —
   `user.token`.
 - `app.module.ts:35-56` — verification in the context factory;
@@ -147,8 +149,8 @@ same code moves twice; `@Public()` is independent and the cheapest step.
 regression is silent: wrong password, expired token, no cookie on each
 protected operation. One e2e test lists every query and mutation from the
 schema and asserts which are public, so a new operation fails until someone
-classifies it. On the front-end, test `authContext.tsx` (user-or-`null` after
-mount, login and logout) and the HOCs.
+classifies it. On the front-end, #33 tests login and logout in
+`authContext.tsx`; add user-or-`null` after mount, and the HOCs.
 
 ## 3. Front-end data flow and naming
 
@@ -217,7 +219,7 @@ it. Do it before the renames, so the compiler checks them.
   `pages/_app.tsx:14` — also the browser's.
 - `getServerSideProps` in six pages; the cookie forwarded at
   `pages/my-activities.tsx:27` and `pages/activities/[id].tsx:28` only.
-- `contexts/authContext.tsx:48` — types matched to `GetUser` by hand.
+- `contexts/authContext.tsx:50` — types matched to `GetUser` by hand.
 - `services/cities.ts:4` — the front-end `City`; `auth/types/auth.dto.ts:6` —
   `access_token`.
 - `pages/activities/[id].tsx:40` — the `<title>`.
