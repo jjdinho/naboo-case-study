@@ -40,4 +40,32 @@ describe('UserService', () => {
       lastName: 'lastName',
     });
   });
+
+  it('ignores a role smuggled into the input', async () => {
+    const input = {
+      email: randomUUID() + '@test.com',
+      password: 'password',
+      firstName: 'firstName',
+      lastName: 'lastName',
+      role: 'admin' as const,
+    };
+
+    const user = await userService.createUser(input);
+
+    expect(user.role).toBe('user');
+  });
+
+  it('creates an admin when asked to', async () => {
+    const user = await userService.createUser(
+      {
+        email: randomUUID() + '@test.com',
+        password: 'password',
+        firstName: 'firstName',
+        lastName: 'lastName',
+      },
+      'admin',
+    );
+
+    expect(user.role).toBe('admin');
+  });
 });

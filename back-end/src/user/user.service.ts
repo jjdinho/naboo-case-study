@@ -33,12 +33,17 @@ export class UserService {
   }
 
   async createUser(
-    data: SignUpInput & {
-      role?: User['role'];
-    },
+    { email, password, firstName, lastName }: SignUpInput,
+    role: User['role'] = 'user',
   ): Promise<User> {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = new this.userModel({ ...data, password: hashedPassword });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new this.userModel({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role,
+    });
     return user.save();
   }
 

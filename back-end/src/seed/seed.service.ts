@@ -20,7 +20,7 @@ export class SeedService {
 
     const admin = await this.userService.findByEmail(adminData.email);
     if (!admin) {
-      await this.userService.createUser(adminData);
+      await this.userService.createUser(adminData, 'admin');
     }
 
     if (!userExisted) {
