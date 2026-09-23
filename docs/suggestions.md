@@ -34,6 +34,7 @@ change, and what it would cost.
 | Stale cookie broke *public* queries site-wide | `app.module.ts` | #9 |
 | Schema and front-end types could drift from the resolvers unnoticed | `.github/workflows/ci.yml` | #16 |
 | Server-rendered pages shared cached query results across users | `graphql/apollo.ts` | #26 |
+| `createUser` stored a `role` passed in its input; it now never sets one | `user/user.service.ts` | #28 |
 
 Paths below are relative to `back-end/src/` or `front-end/src/`.
 
@@ -58,9 +59,6 @@ no read uses `.lean()`.
   gets a `Me` type, where `role` and favorites can live.
 - Resolve `owner` through a DataLoader: one `$in` query per request instead of
   one per activity.
-- `createUser` takes a narrow type instead of spreading
-  `SignUpInput & { role? }` into the model. `role` is safe today only because
-  `signUp` passes four named fields and GraphQL rejects undeclared input fields.
 
 **Effect on the project.** A new stored field is private until someone writes
 an output type for it, and a list of activities costs two queries at any
@@ -76,7 +74,6 @@ anything else user-specific to `User`; it also unlocks lean reads (theme 5).
 - `user/user.schema.ts:11,26,29` — `role`, `password`, `token` kept private by
   omission; `:32-38` — favorites kept off for the same reason.
 - `activity/activity.resolver.ts:34-38` — `populate('owner')` per activity.
-- `user/user.service.ts:35-42` — the `role` spread.
 
 **How you'd verify it.** The CI schema diff (#16) should show no change. Replace
 the two "not exposed" e2e tests (password, favorites) with one that lists each
