@@ -1,20 +1,25 @@
-import { gql } from "@apollo/client";
+import { parse } from "graphql";
 import { vi } from "vitest";
 import { graphqlClient } from "../apollo";
 
-const GetUserActivities = gql`
-  query GetUserActivities {
+// parse, not gql: codegen collects every gql document under src/graphql.
+const ActivitiesByCookie = parse(`
+  query ActivitiesByCookie {
     getActivitiesByUser {
       id
     }
   }
-`;
+`);
 
-// Answers with the id of whoever's cookie the request carries.
+interface ActivitiesByCookieQuery {
+  getActivitiesByUser: { __typename: "Activity"; id: string }[];
+}
+
+// Answers with an activity named after whoever's cookie the request carries.
 const fetchAsCookieOwner = async (_uri: string, init: RequestInit) => {
-  const owner = (init.headers as Record<string, string>).cookie;
-  const data = {
-    getActivitiesByUser: [{ __typename: "Activity", id: owner }],
+  const cookie = (init.headers as Record<string, string>).cookie;
+  const data: ActivitiesByCookieQuery = {
+    getActivitiesByUser: [{ __typename: "Activity", id: cookie }],
   };
   return new Response(JSON.stringify({ data }));
 };
@@ -29,8 +34,8 @@ describe("graphqlClient", () => {
 
     const ids = [];
     for (const cookie of ["jwt=alice", "jwt=bob"]) {
-      const { data } = await graphqlClient.query({
-        query: GetUserActivities,
+      const { data } = await graphqlClient.query<ActivitiesByCookieQuery>({
+        query: ActivitiesByCookie,
         context: { headers: { Cookie: cookie } },
       });
       ids.push(data.getActivitiesByUser[0].id);
