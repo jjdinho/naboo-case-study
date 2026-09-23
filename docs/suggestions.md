@@ -35,6 +35,7 @@ change, and what it would cost.
 | Schema and front-end types could drift from the resolvers unnoticed | `.github/workflows/ci.yml` | #16 |
 | Server-rendered pages shared cached query results across users | `graphql/apollo.ts` | #26 |
 | `createUser` stored a `role` passed in its input; it now never sets one | `user/user.service.ts` | #28 |
+| Every activity owner's email was public through `Activity.owner` | `user/user.schema.ts` | #30 |
 
 Paths below are relative to `back-end/src/` or `front-end/src/`.
 
@@ -72,14 +73,14 @@ anything else user-specific to `User`; it also unlocks lean reads (theme 5).
 
 - `user/user.schema.ts:12-14`, `activity/activity.schema.ts:6-8` — one class,
   both roles.
-- `user/user.schema.ts:18,33,36` — `role`, `password`, `token` kept private by
-  omission; `:39-45` — favorites kept off for the same reason.
+- `user/user.schema.ts:18,29,32,35` — `role`, `email`, `password`, `token` kept
+  private by omission; `:38-44` — favorites kept off for the same reason.
 - `activity/activity.resolver.ts:34-38` — `populate('owner')` per activity.
 
 **How you'd verify it.** The CI schema diff (#16) should show no change. Replace
-the "not exposed" e2e tests (`password`, `favoriteActivityIds`, `role` on
-`owner`) with one that lists each public type's fields against an allowlist, so
-an unintended field fails CI. A resolver test counts queries for
+the "not exposed" e2e tests (`email`, `password`, `favoriteActivityIds`, `role`
+on `owner`) with one that lists each public type's fields against an allowlist,
+so an unintended field fails CI. A resolver test counts queries for
 `getActivities { owner { id } }`: two, whatever the list length.
 
 ## 2. One owner for identity
@@ -109,6 +110,10 @@ revocation.
   reads and the mistyped context. Recommended, not yet decided; it would be its
   own PR.
 - Tokens expire in ~7 days, with `SameSite=Lax` and `secure` in production.
+- Login gives one answer for an unknown email and a wrong password. Today they
+  differ, so anyone can check whether an address has an account; #30 stopped
+  emails being listed, not checked. Signup leaks the same way, and only email
+  verification closes that.
 - Once theme 3's fetch helper resolves `me` on the server and redirects there,
   the `withAuth`/`withoutAuth` HOCs can go. Until then, merge the two mirror
   images into one.
@@ -124,7 +129,7 @@ same code moves twice; `@Public()` is independent and the cheapest step.
 **Evidence.**
 
 - `app.module.ts:37` — the header branch; `contexts/authContext.tsx:54,70,96`
-  — localStorage; `user/user.schema.ts:37` and `auth/auth.service.ts:29` —
+  — localStorage; `user/user.schema.ts:36` and `auth/auth.service.ts:29` —
   `user.token`.
 - `app.module.ts:35-56` — verification in the context factory;
   `auth/auth.guard.ts:15` — the guard's null check.
@@ -135,6 +140,8 @@ same code moves twice; `@Public()` is independent and the cheapest step.
 - `context.jwtPayload.id` read by hand: `activity.resolver.ts:55,84`,
   `me.resolver.ts:17`, `favorite.resolver.ts:21,29,37,45`.
 - `JWT_EXPIRATION_TIME=999999999` in `back-end/.env.dist`.
+- `auth/auth.service.ts:21` — an unknown email throws "User not found";
+  `:25` — "Wrong credentials provided"; `:52` — a taken email is a 401.
 
 **How you'd verify it.** Back-end e2e tests for the failure paths, where a
 regression is silent: wrong password, expired token, no cookie on each
@@ -276,7 +283,7 @@ is planned, do it first: it rewrites the same services.
   — the seeder's direct `create`; `activity/activity.schema.ts:25` — `required`
   only.
 - `auth/auth.service.ts:50,54` — check, then create; `:52` — the 401;
-  `user/user.schema.ts:30` — the unique index.
+  `user/user.schema.ts:29` — the unique index.
 - `favorite/favorite.service.ts:35-40,45-50,60-68` — update queries;
   `user/user.service.ts:45-52` — `updateToken`.
 - `activity/activity.resolver.ts:74` — `id: String`.
@@ -327,7 +334,7 @@ contract. Paginate alongside theme 3's helper, which touches the same pages.
 
 **Evidence.**
 
-- `user/user.schema.ts:30` — the only index.
+- `user/user.schema.ts:29` — the only index.
 - `activity/activity.service.ts:17,21,25,55,59` — the queries above;
   `:17` — `findAll` returns the whole collection.
 
