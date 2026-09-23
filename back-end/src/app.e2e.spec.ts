@@ -4,10 +4,13 @@ import { BaseAppModule } from './app.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { getModelToken } from '@nestjs/mongoose';
 import * as cookieParser from 'cookie-parser';
+import { Model } from 'mongoose';
 import * as request from 'supertest';
 import { ActivityService } from './activity/activity.service';
 import { TestModule, closeInMongodConnection } from './test/test.module';
+import { Role, User } from './user/user.schema';
 import { UserService } from './user/user.service';
 
 describe('App e2e', () => {
@@ -30,6 +33,13 @@ describe('App e2e', () => {
   afterAll(async () => {
     closeInMongodConnection();
   });
+
+  const tokenFor = (id: string) =>
+    new JwtService().signAsync(
+      { id },
+      { secret: app.get(ConfigService).get<string>('JWT_SECRET') },
+    );
+
   it('app should be defined', () => {
     expect(app).toBeDefined();
   });
@@ -82,6 +92,7 @@ describe('App e2e', () => {
               email
               firstName
               lastName
+              role
             }
           }
         `,
@@ -93,7 +104,29 @@ describe('App e2e', () => {
       email,
       firstName: 'firstName',
       lastName: 'lastName',
+      role: 'user',
     });
+  });
+
+  test('getMe returns the admin role', async () => {
+    const { id } = await app.get(UserService).createUser({
+      email: randomUUID() + '@test.com',
+      password: randomUUID(),
+      firstName: 'firstName',
+      lastName: 'lastName',
+    });
+    // Admins are promoted by hand in the database.
+    await app
+      .get<Model<User>>(getModelToken(User.name))
+      .updateOne({ _id: id }, { role: Role.admin });
+
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('jwt', await tokenFor(id))
+      .send({ query: 'query { getMe { role } }' })
+      .expect(200);
+
+    expect(response.body.data.getMe).toEqual({ role: 'admin' });
   });
 
   test('sign-up rejects a malformed email', async () => {
@@ -151,30 +184,21 @@ describe('App e2e', () => {
     });
   });
 
-  test('password is not exposed in the GraphQL schema', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/graphql')
-      .send({
-        query: `
-          query {
-            getMe {
-              password
-            }
-          }
-        `,
-      });
+  // User is also Activity.owner, which anyone can list.
+  test.each(['password', 'favoriteActivityIds', 'role'])(
+    '%s is not exposed on the shared User type',
+    async (field) => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({ query: `query { getActivities { owner { ${field} } } }` });
 
-    expect(response.body.errors?.[0]?.extensions?.code).toBe(
-      'GRAPHQL_VALIDATION_FAILED',
-    );
-  });
-  describe('favorites', () => {
-    const tokenFor = (id: string) =>
-      new JwtService().signAsync(
-        { id },
-        { secret: app.get(ConfigService).get<string>('JWT_SECRET') },
+      expect(response.body.errors?.[0]?.extensions?.code).toBe(
+        'GRAPHQL_VALIDATION_FAILED',
       );
+    },
+  );
 
+  describe('favorites', () => {
     test('require login', async () => {
       const response = await request(app.getHttpServer())
         .post('/graphql')
@@ -182,16 +206,6 @@ describe('App e2e', () => {
         .expect(200);
 
       expect(response.body.errors?.[0]?.message).toBe('Unauthorized');
-    });
-
-    test('are not exposed on the shared User type', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/graphql')
-        .send({ query: 'query { getMe { favoriteActivityIds } }' });
-
-      expect(response.body.errors?.[0]?.extensions?.code).toBe(
-        'GRAPHQL_VALIDATION_FAILED',
-      );
     });
 
     test('reject a malformed activity id', async () => {

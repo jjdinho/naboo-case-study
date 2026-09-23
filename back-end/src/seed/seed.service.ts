@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ActivityService } from '../activity/activity.service';
-import { User } from '../user/user.schema';
+import { Role, User } from '../user/user.schema';
 import { UserService } from '../user/user.service';
 import { activities as activitiesData } from './activity.data';
 import { user as userData, admin as adminData } from './user.data';
@@ -27,7 +27,7 @@ export class SeedService {
     if (!admin) {
       const { id } = await this.userService.createUser(adminData);
       // createUser never makes admins: the dev seed promotes its own directly.
-      await this.userModel.updateOne({ _id: id }, { role: 'admin' });
+      await this.userModel.updateOne({ _id: id }, { role: Role.admin });
     }
 
     if (!userExisted) {

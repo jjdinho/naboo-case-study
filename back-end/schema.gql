@@ -24,6 +24,14 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Me {
+  email: String!
+  firstName: String!
+  id: ID!
+  lastName: String!
+  role: Role!
+}
+
 type Mutation {
   addFavoriteActivity(activityId: ID!): [Activity!]!
   createActivity(createActivityInput: CreateActivityInput!): Activity!
@@ -42,7 +50,12 @@ type Query {
   getCities: [String!]!
   getFavoriteActivities: [Activity!]!
   getLatestActivities: [Activity!]!
-  getMe: User!
+  getMe: Me!
+}
+
+enum Role {
+  admin
+  user
 }
 
 type SignInDto {

@@ -55,8 +55,9 @@ no read uses `.lean()`.
 
 - Give the GraphQL types their own classes; the Mongoose schema stays internal
   to its module. Services return plain objects, resolvers map them.
-- `Activity.owner` becomes a public `Owner` type (names only). The current user
-  gets a `Me` type, where `role` and favorites can live.
+- `Activity.owner` becomes a public `Owner` type (names only). `getMe` already
+  returns its own `Me` type, added for `role` (Mode debug); favorites can live
+  there too.
 - Resolve `owner` through a DataLoader: one `$in` query per request instead of
   one per activity.
 
@@ -69,17 +70,17 @@ anything else user-specific to `User`; it also unlocks lean reads (theme 5).
 
 **Evidence.**
 
-- `user/user.schema.ts:5-7`, `activity/activity.schema.ts:6-8` — one class,
+- `user/user.schema.ts:12-14`, `activity/activity.schema.ts:6-8` — one class,
   both roles.
-- `user/user.schema.ts:11,26,29` — `role`, `password`, `token` kept private by
-  omission; `:32-38` — favorites kept off for the same reason.
+- `user/user.schema.ts:18,33,36` — `role`, `password`, `token` kept private by
+  omission; `:39-45` — favorites kept off for the same reason.
 - `activity/activity.resolver.ts:34-38` — `populate('owner')` per activity.
 
 **How you'd verify it.** The CI schema diff (#16) should show no change. Replace
-the two "not exposed" e2e tests (password, favorites) with one that lists each
-public type's fields against an allowlist, so an unintended field fails CI. A
-resolver test counts queries for `getActivities { owner { id } }`: two,
-whatever the list length.
+the "not exposed" e2e tests (`password`, `favoriteActivityIds`, `role` on
+`owner`) with one that lists each public type's fields against an allowlist, so
+an unintended field fails CI. A resolver test counts queries for
+`getActivities { owner { id } }`: two, whatever the list length.
 
 ## 2. One owner for identity
 
@@ -123,7 +124,7 @@ same code moves twice; `@Public()` is independent and the cheapest step.
 **Evidence.**
 
 - `app.module.ts:37` — the header branch; `contexts/authContext.tsx:54,70,96`
-  — localStorage; `user/user.schema.ts:30` and `auth/auth.service.ts:29` —
+  — localStorage; `user/user.schema.ts:37` and `auth/auth.service.ts:29` —
   `user.token`.
 - `app.module.ts:35-56` — verification in the context factory;
   `auth/auth.guard.ts:15` — the guard's null check.
@@ -275,7 +276,7 @@ is planned, do it first: it rewrites the same services.
   — the seeder's direct `create`; `activity/activity.schema.ts:25` — `required`
   only.
 - `auth/auth.service.ts:50,54` — check, then create; `:52` — the 401;
-  `user/user.schema.ts:23` — the unique index.
+  `user/user.schema.ts:30` — the unique index.
 - `favorite/favorite.service.ts:35-40,45-50,60-68` — update queries;
   `user/user.service.ts:45-52` — `updateToken`.
 - `activity/activity.resolver.ts:74` — `id: String`.
@@ -326,7 +327,7 @@ contract. Paginate alongside theme 3's helper, which touches the same pages.
 
 **Evidence.**
 
-- `user/user.schema.ts:23` — the only index.
+- `user/user.schema.ts:30` — the only index.
 - `activity/activity.service.ts:17,21,25,55,59` — the queries above;
   `:17` — `findAll` returns the whole collection.
 
