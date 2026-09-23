@@ -10,10 +10,11 @@ Ordered by value.
 
 - **Clean module boundaries.** Nest modules map one-to-one onto domains — so
   Favoris lands in one module.
-- **Code-first GraphQL.** `schema.gql` is generated, so it can't drift from the
-  resolvers.
+- **Code-first GraphQL.** `schema.gql` is generated from the resolvers rather
+  than hand-written, so drift is at least mechanically detectable (§10).
 - **Generated front-end types.** `codegen.yml` derives TS from that schema, so a
-  back-end rename becomes a front-end compile error.
+  back-end rename can surface as a front-end compile error — once the
+  generators actually run (§10).
 - **A convention for failure.** `getById`/`getByEmail` throw, `findByEmail`
   returns `null`. Undocumented, but followed everywhere.
 - **In-memory Mongo already wired** — the expensive part of testing Mongoose is
@@ -161,7 +162,90 @@ cost nothing to add.
   context is the highest value, especially if §1 makes it the single source of
   auth state.
 
-## 10. Smaller items
+## 10. Schema drift
+
+Three artifacts derive from the Nest resolvers, each by a manual step:
+
+```
+@ObjectType / @Query decorators
+  └─ autoSchemaFile, at server boot ─▶ back-end/schema.gql
+       └─ cp, in `generate-types` ───▶ front-end/src/graphql/schema.gql
+            └─ graphql-codegen ──────▶ front-end/src/graphql/generated/types.ts
+                 └─ imported by 14 components and pages
+```
+
+Nothing enforced any hop. `schema.gql` only regenerates when someone boots the
+server, and codegen only runs when someone remembers — so a resolver change can
+ship with a stale schema, and a committed `generated/types.ts` typechecks the
+front-end green against types the server no longer serves. The stale artifact
+actively vouches for code that is now wrong.
+
+**Now enforced.** The back-end e2e spec boots the GraphQL module, so `npm test`
+already rewrites `schema.gql` via `autoSchemaFile` as a side effect — CI just
+diffs the result. Adding a query to a resolver leaves all 13 tests passing and
+fails on that diff alone, which is the point: the tests cannot see schema drift.
+
+The front-end's `schema.gql` and `generated/types.ts` are no longer committed,
+so they cannot be stale. The schema stays committed on the back-end, where it
+is the reviewable contract — a reviewer should feel something when it changes.
+
+Cost: a fresh clone must run `generate-types` before `dev` or `build`, which
+the readme now says. Automating that is less trivial than it looks — npm's
+`pre*` hooks are the idiomatic place, but they are silently skipped under
+`ignore-scripts`, so it would have to be chained inside each script instead.
+
+### Still hand-matched: documents and their types
+
+Type arguments are paired with their documents by hand:
+
+```ts
+useLazyQuery<GetUserQuery, GetUserQueryVariables>(GetUser)  // authContext.tsx:48
+```
+
+Nothing stops `useQuery<GetActivitiesQuery, GetActivitiesQueryVariables>(GetCities)` —
+TypeScript accepts it and you get a fully-typed lie. No schema check catches
+this; it is drift entirely inside the front-end.
+
+graphql-codegen's `client-preset` fixes this with `TypedDocumentNode`: the
+generated document carries its own types, so `useQuery(GetUserDocument)` infers
+everything and the mismatch becomes unrepresentable. This is where most
+TypeScript GraphQL codebases have landed since ~2023.
+
+Left undone — it is a real refactor across all 14 call sites, and nothing above
+depends on it.
+
+### If the two apps ever deploy separately
+
+Everything above is build-time, and it works only because `back-end/` and
+`front-end/` share a repo: a schema change and its client updates land in one
+atomic commit, so there is never a window where the two disagree.
+
+Deploying them apart removes that guarantee, and no amount of codegen replaces
+it — there is always a period where a browser running yesterday's JS talks to
+today's server. That is the point at which a **schema registry** (Apollo
+GraphOS, GraphQL Hive, WunderGraph Cosmo) starts to earn its keep:
+
+- the server publishes its schema on deploy, and CI diffs a proposed schema
+  against the deployed one, classifying every change breaking or non-breaking;
+- the registry ingests **real client traffic**, so "is dropping this field
+  safe?" stops being a guess and becomes a data question — *nothing has
+  requested it in 90 days* versus *0.3% of yesterday's traffic still does*.
+  That information is not in the repository; it is in the traffic.
+
+**Persisted queries** are the client-side half: clients register their
+operations at build time and send a hash instead of a document, so the server
+holds a manifest of every operation any deployed client can issue and can
+validate the entire fleet against a schema change before shipping it.
+
+The discipline that makes either usable costs nothing and should be adopted the
+day the split happens — **expand-contract**: add the new field and deploy; mark
+the old one `@deprecated` and migrate the client; wait for old clients to drain;
+only then remove it. Never remove-and-replace in a single deploy.
+
+None of this is worth adopting today — one repo, one deploy, no third-party
+clients, and no traffic to mine.
+
+## 11. Smaller items
 
 - Fold `MeModule`/`MeResolver` (one line: `userService.getById(...)`) into the
   user module.

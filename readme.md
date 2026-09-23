@@ -34,6 +34,8 @@ frontend
 ```bash
 npm i
 
+npm run generate-types # run this first — the GraphQL types aren't committed
+
 npm run dev
 ```
 
