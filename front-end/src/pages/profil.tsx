@@ -6,7 +6,7 @@ import Head from "next/head";
 
 const Profile = () => {
   const { user } = useAuth();
-  const { favorites, loading, remove } = useFavoriteActivities();
+  const { favorites, loading, remove, reorder } = useFavoriteActivities();
 
   return (
     <>
@@ -27,7 +27,11 @@ const Profile = () => {
       </Flex>
       <PageTitle title="Mes favoris" />
       {favorites.length > 0 ? (
-        <FavoriteList favorites={favorites} onRemove={remove} />
+        <FavoriteList
+          favorites={favorites}
+          onReorder={reorder}
+          onRemove={remove}
+        />
       ) : (
         !loading && <EmptyData />
       )}
