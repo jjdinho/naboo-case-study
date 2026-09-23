@@ -1,4 +1,4 @@
-import { Topbar } from "@/components";
+import { DebugModeSwitch, Topbar } from "@/components";
 import { AuthProvider, SnackbarProvider } from "@/contexts";
 import { routes } from "@/routes";
 import { graphqlClient } from "@/graphql/apollo";
@@ -17,6 +17,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <Container>
               <Component {...pageProps} />
             </Container>
+            <DebugModeSwitch />
           </AuthProvider>
         </ApolloProvider>
       </SnackbarProvider>
