@@ -37,6 +37,11 @@ export class ActivityResolver {
     return activity.owner;
   }
 
+  @Query(() => String)
+  ciDriftProbe(): string {
+    return 'probe';
+  }
+
   @Query(() => [Activity])
   async getActivities(): Promise<Activity[]> {
     return this.activityService.findAll();
