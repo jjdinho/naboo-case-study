@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Activity } from 'src/activity/activity.schema';
 import { ActivityService } from 'src/activity/activity.service';
 import { User } from 'src/user/user.schema';
+
+const NOT_A_REORDERING =
+  'activityIds must be a reordering of the current favorites';
 
 @Injectable()
 export class FavoriteService {
@@ -41,6 +48,27 @@ export class FavoriteService {
         { $pull: { favoriteActivityIds: activityId } },
       )
       .exec();
+    return this.findByUser(userId);
+  }
+
+  // The permutation check sits in the update filter, so a favorite added
+  // between the client's read and this write is never silently dropped.
+  async reorder(userId: string, activityIds: string[]): Promise<Activity[]> {
+    if (new Set(activityIds).size !== activityIds.length) {
+      throw new BadRequestException(NOT_A_REORDERING);
+    }
+    const { matchedCount } = await this.userModel
+      .updateOne(
+        {
+          _id: userId,
+          favoriteActivityIds: { $size: activityIds.length, $all: activityIds },
+        },
+        { $set: { favoriteActivityIds: activityIds } },
+      )
+      .exec();
+    if (!matchedCount) {
+      throw new BadRequestException(NOT_A_REORDERING);
+    }
     return this.findByUser(userId);
   }
 }

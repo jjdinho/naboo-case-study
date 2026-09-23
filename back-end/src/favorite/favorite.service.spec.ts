@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { Activity } from 'src/activity/activity.schema';
@@ -88,6 +88,37 @@ describe('FavoriteService', () => {
       await service.add(userId, yoga);
 
       expect(names(await service.remove(userId, escalade))).toEqual([
+        'Kayak',
+        'Yoga',
+      ]);
+    });
+  });
+
+  describe('reorder', () => {
+    beforeEach(async () => {
+      await service.add(userId, kayak);
+      await service.add(userId, yoga);
+    });
+
+    it('saves the new order', async () => {
+      await service.reorder(userId, [yoga, kayak]);
+
+      expect(names(await service.findByUser(userId))).toEqual([
+        'Yoga',
+        'Kayak',
+      ]);
+    });
+
+    it.each([
+      ['a favorite is missing', () => [yoga]],
+      ['an activity is not a favorite', () => [yoga, kayak, escalade]],
+      ['an activity is repeated', () => [yoga, yoga]],
+    ])('rejects the list when %s', async (_, activityIds) => {
+      await expect(service.reorder(userId, activityIds())).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(names(await service.findByUser(userId))).toEqual([
         'Kayak',
         'Yoga',
       ]);
