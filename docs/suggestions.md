@@ -441,3 +441,5 @@ each tier; `npm audit --omit=dev` matches the simulated after-count.
 | New id arguments are typed `ID` and checked with `@IsMongoId` | Every favorites operation takes an activity id; a malformed one is a `BAD_REQUEST`, not a 500 | #21 |
 | Favorites are written with single atomic updates, the codebase's first update queries | No read-modify-write window, and `$addToSet` makes adding idempotent | #21, #22 |
 | The auth guard sits on the whole favorites resolver class | Every operation is per-user, so a new one requires login by default | #21 |
+| Codegen types `DateTime` as `string`, not `any` | The Mode debug card formats `createdAt`, the first date the front-end reads | #31 |
+| Front-end tests resolve the `@/` import alias | The card's test is the first to render a component that imports through it | #31 |
