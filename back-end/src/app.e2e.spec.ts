@@ -6,7 +6,9 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as cookieParser from 'cookie-parser';
 import * as request from 'supertest';
+import { ActivityService } from './activity/activity.service';
 import { TestModule, closeInMongodConnection } from './test/test.module';
+import { UserService } from './user/user.service';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -165,5 +167,77 @@ describe('App e2e', () => {
     expect(response.body.errors?.[0]?.extensions?.code).toBe(
       'GRAPHQL_VALIDATION_FAILED',
     );
+  });
+  describe('favorites', () => {
+    const tokenFor = (id: string) =>
+      new JwtService().signAsync(
+        { id },
+        { secret: app.get(ConfigService).get<string>('JWT_SECRET') },
+      );
+
+    test('require login', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({ query: 'query { getFavoriteActivities { id } }' })
+        .expect(200);
+
+      expect(response.body.errors?.[0]?.message).toBe('Unauthorized');
+    });
+
+    test('are not exposed on the shared User type', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({ query: 'query { getMe { favoriteActivityIds } }' });
+
+      expect(response.body.errors?.[0]?.extensions?.code).toBe(
+        'GRAPHQL_VALIDATION_FAILED',
+      );
+    });
+
+    test('reject a malformed activity id', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .set('jwt', await tokenFor('652d9a4b8f1b2c3d4e5f6a7b'))
+        .send({
+          query: 'mutation { addFavoriteActivity(activityId: "nope") { id } }',
+        })
+        .expect(200);
+
+      expect(response.body.errors?.[0]?.extensions?.code).toBe('BAD_REQUEST');
+    });
+
+    test('add a favorite and read it back', async () => {
+      const user = await app.get(UserService).createUser({
+        email: randomUUID() + '@test.com',
+        password: randomUUID(),
+        firstName: 'firstName',
+        lastName: 'lastName',
+      });
+      const activity = await app.get(ActivityService).create(user.id, {
+        name: 'Kayak',
+        city: 'Paris',
+        description: 'Description',
+        price: 10,
+      });
+      const jwt = await tokenFor(user.id);
+
+      await request(app.getHttpServer())
+        .post('/graphql')
+        .set('jwt', jwt)
+        .send({
+          query: `mutation { addFavoriteActivity(activityId: "${activity.id}") { id } }`,
+        })
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .set('jwt', jwt)
+        .send({ query: 'query { getFavoriteActivities { name } }' })
+        .expect(200);
+
+      expect(response.body.data.getFavoriteActivities).toEqual([
+        { name: 'Kayak' },
+      ]);
+    });
   });
 });
