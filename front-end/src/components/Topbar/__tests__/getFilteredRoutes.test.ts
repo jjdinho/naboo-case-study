@@ -1,4 +1,4 @@
-import { GetUserQuery } from "@/graphql/generated/types";
+import { GetUserQuery, Role } from "@/graphql/generated/types";
 import { checkRouteAccess, getFilteredRoutes } from "../getFilteredRoutes";
 import { Route, SubRoute } from "../types";
 
@@ -14,6 +14,7 @@ const user: GetUserQuery["getMe"] = {
   email: "user1@test.fr",
   firstName: "john",
   lastName: "doe",
+  role: Role.User,
 };
 
 describe("la fonction checkRouteAccess", () => {

@@ -8,6 +8,8 @@ generates:
       - typescript-resolvers
     config:
       gqlImport: "graphql-tag"
+      scalars:
+        DateTime: string
 
 documents:
   - "./src/graphql/**/*.ts"

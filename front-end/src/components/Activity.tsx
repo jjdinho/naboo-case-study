@@ -1,4 +1,5 @@
 import { ActivityFragment } from "@/graphql/generated/types";
+import { useDebugMode } from "@/hooks";
 import { useGlobalStyles } from "@/utils";
 import { Badge, Button, Card, Grid, Group, Image, Text } from "@mantine/core";
 import Link from "next/link";
@@ -9,6 +10,7 @@ interface ActivityProps {
 
 export function Activity({ activity }: ActivityProps) {
   const { classes } = useGlobalStyles();
+  const debugMode = useDebugMode();
 
   return (
     <Grid.Col span={4}>
@@ -39,6 +41,12 @@ export function Activity({ activity }: ActivityProps) {
         <Text size="sm" color="dimmed" className={classes.ellipsis}>
           {activity.description}
         </Text>
+
+        {debugMode && activity.createdAt && (
+          <Text size="xs" color="dimmed" mt="xs">
+            Créée le {new Date(activity.createdAt).toLocaleString("fr-FR")}
+          </Text>
+        )}
 
         <Link href={`/activities/${activity.id}`} className={classes.link}>
           <Button variant="light" color="blue" fullWidth mt="md" radius="md">
