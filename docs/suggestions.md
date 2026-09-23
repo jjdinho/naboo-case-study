@@ -167,7 +167,10 @@ matched with its document's types by hand.
 
 - One server-side fetch helper: a new client per request, the cookie always
   forwarded, and an unauthenticated error turned into a redirect to `/signin`.
-  A client per request makes #26's isolation structural instead of a setting.
+  A client per request makes #26's isolation structural instead of a setting,
+  and brings back caching within a request, which `no-cache` gives up:
+  repeated queries are answered once, and the server's results can pre-fill
+  the browser's cache.
 - Documents carry their types. CI already fails when the schema or generated
   types drift (#16); what it can't see is a hook given the wrong document's
   types. graphql-codegen's `client-preset` generates `TypedDocumentNode`s, so
