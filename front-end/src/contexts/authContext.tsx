@@ -15,7 +15,7 @@ import Signin from "@/graphql/mutations/auth/signin";
 import Signup from "@/graphql/mutations/auth/signup";
 import GetUser from "@/graphql/queries/auth/getUser";
 import { useSnackbar } from "@/hooks";
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useApolloClient, useLazyQuery, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { createContext, useEffect, useState } from "react";
 
@@ -44,8 +44,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<GetUserQuery["getMe"] | null>(null);
   const router = useRouter();
+  const client = useApolloClient();
 
-  const [getUser] = useLazyQuery<GetUserQuery, GetUserQueryVariables>(GetUser);
+  // The session lives in a cookie the cache can't see: always ask the server.
+  const [getUser] = useLazyQuery<GetUserQuery, GetUserQueryVariables>(GetUser, {
+    fetchPolicy: "network-only",
+  });
   const [signin] = useMutation<SigninMutation, SigninMutationVariables>(Signin);
   const [signup] = useMutation<SignupMutation, SignupMutationVariables>(Signup);
   const [logout] = useMutation<LogoutMutation, LogoutMutationVariables>(Logout);
@@ -94,6 +98,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       await logout();
       localStorage.removeItem("token");
+      // Forget this user's data, so the next one to sign in can't see it.
+      await client.clearStore();
       setUser(null);
       router.push("/");
     } catch (err) {
