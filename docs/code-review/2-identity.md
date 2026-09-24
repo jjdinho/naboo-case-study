@@ -4,6 +4,11 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
+The problem is that no single layer owns login: the token is stored, sent and
+checked in several places. Giving it one owner unlocks one answer to "is this
+user logged in", a token XSS can't read, operations closed by default, and
+tokens that expire.
+
 The token lives in four places: an httpOnly cookie, a `jwt` header,
 localStorage, and `user.token`, which every login writes and nothing reads.
 Three layers share checking it: the GraphQL context factory verifies it, the

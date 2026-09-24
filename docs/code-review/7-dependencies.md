@@ -4,6 +4,11 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
+The problem is that nothing keeps dependencies current, so known vulnerabilities
+pile up unnoticed. Updating in ranked tiers and automating the rest unlocks a
+cleared backlog (tier 1 alone clears 8 of the 9 back-end criticals) and new
+vulnerable dependencies caught in the PR that adds them.
+
 `npm audit --omit=dev`, 2026-09-23: 48 vulnerable packages on the back-end (9
 critical, 25 high) and 8 on the front-end (2 critical), one of them Next with 35
 advisories. Nothing updates dependencies or reports new advisories, so the

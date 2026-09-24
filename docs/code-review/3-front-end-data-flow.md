@@ -4,6 +4,11 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
+The problem is that every server-rendered page fetches its data its own way. One
+helper unlocks users kept apart by design, a redirect instead of a 500 for
+logged-out visitors, and the server-side user theme 2 needs; typed documents let
+the compiler catch a hook given the wrong types.
+
 Six pages each copy the same `getServerSideProps` block, all through one
 module-level Apollo client that every request shares, and each copy decides for
 itself what to forward and what to do on failure.

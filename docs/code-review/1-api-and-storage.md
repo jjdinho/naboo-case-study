@@ -4,6 +4,11 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
+The problem is that the stored class is also the published one, so keeping a
+field private depends on nobody adding a decorator. Separating them unlocks
+private-by-default fields, per-user data on `User`, and every activity's owner
+fetched in one batched query.
+
 `User` and `Activity` each use one class for two jobs: it defines what MongoDB
 stores and what the API returns. So every stored field is one `@Field` away from
 being public. That is how the password hash reached the schema (#2).

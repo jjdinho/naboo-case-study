@@ -4,6 +4,10 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
+The problem is that each rule is enforced wherever it happened to be written, so
+it holds on one path and not another. Putting each in the layer that owns it
+unlocks rules that hold for every caller, and status codes clients can act on.
+
 `ActivityService` and `UserService` are mostly one-to-three line pass-throughs,
 so rules land wherever was convenient: query construction in resolvers (the
 regex injection, #4, was one), value checks only on the GraphQL input,
