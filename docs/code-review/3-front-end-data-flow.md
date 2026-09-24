@@ -4,8 +4,8 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
-The problem is that every server-rendered page fetches its data its own way. One
-helper unlocks users kept apart by design, a redirect instead of a 500 for
+The problem is that every server-rendered page fetches its data its own way. Using one
+single helper would unlock: users kept apart by design, a redirect instead of a 500 for
 logged-out visitors, and the server-side user theme 2 needs; typed documents let
 the compiler catch a hook given the wrong types.
 
@@ -13,7 +13,7 @@ Six pages each copy the same `getServerSideProps` block, all through one
 module-level Apollo client that every request shares, and each copy decides for
 itself what to forward and what to do on failure.
 
-- Until #26, that client answered from its cache: `/my-activities` showed a
+- Until PR #26, that client answered from its cache: `/my-activities` showed a
   second user the first user's activities, and server-rendered lists stayed
   stale until restart. A `no-cache` default fixed it; the client is still
   shared.
@@ -82,6 +82,6 @@ nothing depends on it. Do it before the renames, so the compiler checks them.
 
 ### How you'd verify it
 
-#26's test sends two cookies through the shared client and expects two answers;
+PR #26's test sends two cookies through the shared client and expects two answers;
 with the helper, it moves to the helper. A logged-out call returns a redirect
 rather than throwing. Test `ActivityForm`, which has no coverage.

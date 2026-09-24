@@ -6,11 +6,11 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 The problem is that each rule is enforced wherever it happened to be written, so
 it holds on one path and not another. Putting each in the layer that owns it
-unlocks rules that hold for every caller, and status codes clients can act on.
+would unlock: rules that hold for every caller, and status codes clients can act on.
 
 `ActivityService` and `UserService` are mostly one-to-three line pass-throughs,
 so rules land wherever was convenient: query construction in resolvers (the
-regex injection, #4, was one), value checks only on the GraphQL input,
+regex injection, PR #4, was one), value checks only on the GraphQL input,
 uniqueness only in a MongoDB index, and errors in whichever exception was
 nearest. Each rule then holds on one path and not another.
 
@@ -76,4 +76,4 @@ rewrites the same services.
 Service tests: `create` with price 0 is rejected without the input DTO; two
 concurrent `signUp`s with one email give one user and one `ConflictException`.
 E2E: `getActivity(id: "nope")` is a `BAD_REQUEST`, a duplicate signup is a 409,
-and the #19 validation test passes with the copied pipe line removed.
+and the PR #19 validation test passes with the copied pipe line removed.

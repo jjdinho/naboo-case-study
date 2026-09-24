@@ -1,15 +1,15 @@
-# 2. One owner for identity
+# 2. One owner for identity, auth closed by default (Public opt-in)
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
 The problem is that no single layer owns login: the token is stored, sent and
-checked in several places. Giving it one owner unlocks one answer to "is this
+checked in several places. Giving it one owner would unlock: one answer to "is this
 user logged in", a token XSS can't read, operations closed by default, and
-tokens that expire.
+tokens that expire. Better maintainability and debugging.
 
-The token lives in four places: an httpOnly cookie, a `jwt` header,
+Currently, the token lives in four places: an httpOnly cookie, a `jwt` header,
 localStorage, and `user.token`, which every login writes and nothing reads.
 Three layers share checking it: the GraphQL context factory verifies it, the
 guard only checks a payload exists, and resolvers read `context.jwtPayload.id`
@@ -49,7 +49,7 @@ touches login and logout on both sides and every guarded resolver. Hard
 navigations show a loading state, since auth costs a round trip, until the
 server resolves `me`. Shortening token lifetime logs everyone out once. Settle
 the transport before moving verification into the guard, or the same code moves
-twice; `@Public()` is independent and the cheapest step.
+twice; `@Public()` is independent and the cheapest step. Better maintainability.
 
 ### Evidence
 

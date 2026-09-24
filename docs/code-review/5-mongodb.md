@@ -5,7 +5,7 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 ### Pattern
 
 The problem is that no list query has a matching index or a page size, so each
-one costs more as the catalog grows. Indexing and paginating them unlocks flat
+one costs more as the catalog grows. Indexing and paginating them would unlock: flat
 list latency and memory, and deploys that don't build indexes against live
 traffic.
 
