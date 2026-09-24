@@ -1,4 +1,4 @@
-import { withAuth } from "@/hocs";
+import { withAuth, withoutAuth } from "@/hocs";
 import { useAuth } from "@/hooks";
 import {
   ApolloClient,
@@ -124,5 +124,40 @@ describe("auth", () => {
     await act(() => loggingOut);
 
     expect(push).not.toHaveBeenCalledWith("/signin");
+  });
+
+  it("sends a user signing in to their profile, not home", async () => {
+    const SigninPage = withoutAuth(() => null);
+    let onProfile = false;
+    const { result, rerender } = renderHook(() => useAuth(), {
+      wrapper: ({ children }) => (
+        <Providers>
+          {!onProfile && <SigninPage />}
+          {children}
+        </Providers>
+      ),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    // Like Next: the new page replaces the sign-in one once it has loaded.
+    push.mockImplementation(async (path: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      if (path === "/profil") {
+        onProfile = true;
+        rerender();
+      }
+    });
+
+    // React renders while the navigation is under way, as in a browser.
+    let signingIn = Promise.resolve();
+    act(() => {
+      signingIn = result.current.handleSignin({
+        email: "user1@test.fr",
+        password: "b",
+      });
+    });
+    await waitFor(() => expect(onProfile).toBe(true));
+    await act(() => signingIn);
+
+    expect(push).not.toHaveBeenCalledWith("/");
   });
 });
