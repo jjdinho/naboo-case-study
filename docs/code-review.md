@@ -21,7 +21,105 @@ cost, and how you'd verify it.
 - **In-memory Mongo already wired** — the expensive part of testing Mongoose is
   done.
 
-## Fixed (merged)
+---
+
+## Suggested codebase Improvements
+
+Below are 7 codebase improvements that can be introduced to this project. They are more architectural and would touch many files, thus they were out of scope while implementing the Favoris and Mode Debug features. Each is its own initiative.
+
+### 1. Separate the API from storage
+
+Separate the GraphQL classes from the MongoDB classes, so the API only shows
+what we choose to expose and can benefit from batched fetching. Today it's hard
+to add a private field to `User` or `Activity`, because each one class is both
+what's stored and what's published: one `@Field` makes a stored field public
+(that's how the password hash leaked, PR #2). With the split, resolvers work
+with plain objects, and a DataLoader fetches every activity's owner in one query
+instead of one per activity, so a list costs two queries at any length.
+
+[Read more: code-review/1-api-and-storage.md](code-review/1-api-and-storage.md)
+
+### 2. One owner for identity
+
+Give login one owner, the cookie for transport and the guard for verification,
+so there's one answer to "is this user logged in" and a stolen token stops
+working within a week. Today it's hard to say who is logged in, because the
+token lives in four places (one readable by any XSS), three layers each check
+part of it, and tokens last ~31 years. With one owner, every operation is closed
+by default with `@Public()` opt-outs, so a forgotten decorator fails closed
+instead of leaving an operation public.
+
+[Read more: code-review/2-identity.md](code-review/2-identity.md)
+
+### 3. Front-end data flow and naming
+
+Fetch server-side data through one helper, so every page keeps users apart, sees
+the logged-in user and fails the same way. Today it's hard to trust a
+server-rendered page, because six pages each copy the same fetch block and
+decide for themselves what to forward and how to fail: that's how one user's
+activities were shown to another (PR #26), and why `/my-activities` returns a
+500 when logged out. With the helper, each request gets its own client, the
+cookie is always forwarded and a logged-out visitor is redirected; alongside it,
+typed documents and one name per concept let the compiler catch mismatches.
+
+[Read more: code-review/3-front-end-data-flow.md](code-review/3-front-end-data-flow.md)
+
+### 4. Put each rule in the layer that owns it
+
+Put each rule in the service that owns its entity, so it holds whoever calls
+(the seeder, a script, a future REST route) and clients get status codes they
+can act on. Today it's hard to know whether a rule holds, because rules land
+wherever was convenient: the seeder skips price validation, a signup race
+surfaces as a 500, and a malformed id reaches Mongo. With services as the owner,
+every write passes through them: duplicate keys become a 409, updates run
+validators, and ids are checked everywhere.
+
+[Read more: code-review/4-rule-ownership.md](code-review/4-rule-ownership.md)
+
+### 5. Use MongoDB deliberately
+
+Index and paginate the queries the app actually runs, so list latency and memory
+stay flat as the catalog grows. Today it's hard to grow the catalog, because
+every list query scans and returns the whole collection: the only index besides
+`_id` is on email, and no list is paginated. With the four indexes the queries
+need, cursor pagination and `.lean()` reads, a page costs the same at any
+catalog size, and building indexes in a release step keeps deploys from
+competing with their own index builds.
+
+[Read more: code-review/5-mongodb.md](code-review/5-mongodb.md)
+
+### 6. Config and environments
+
+Read config through one validated module per side, so a misconfigured deploy
+fails at boot with a clear message and the front-end can target staging. Today
+it's hard to trust an environment, because config is read three ways and
+validated nowhere: a missing `JWT_SECRET` only shows up at the first login, the
+GraphQL playground ships to production, and the front-end hard-codes its URLs.
+With one module, environment-dependent settings come from config, and a clean
+clone works too: the compose file the scripts expect, and Prettier on the
+front-end.
+
+[Read more: code-review/6-config.md](code-review/6-config.md)
+
+### 7. Keep dependencies current
+
+Update dependencies in four tiers ranked by risk and automate what comes next,
+so known vulnerabilities get cleared and new ones are caught in the PR that adds
+them. Today it's hard to keep up, because nothing updates dependencies or
+reports new advisories: 48 vulnerable back-end packages (9 critical) and 8 on
+the front-end (2 critical), and the backlog only grows. With tier 1, one small
+in-range PR clears 8 of the 9 back-end criticals, and Dependabot plus a
+dependency-review check on pull requests stop the backlog from rebuilding.
+
+[Read more: code-review/7-dependencies.md](code-review/7-dependencies.md)
+
+---
+
+## Work done along the way
+
+### Fixes (merged)
+
+These are fixes that were deemed critical enough to go ahead and implement within the scope of the case study.
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
@@ -43,94 +141,10 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 | Logging out sent a request on every render of the `/logout` page; it's now a menu action | `routes.ts`, `components/Topbar/MenuItem.tsx` | #34 |
 | Signing in landed on `/`, not `/profil`: the sign-in page redirected mid-navigation | `contexts/authContext.tsx` | #35 |
 
----
 
-## 1. Separate the API from storage
+### Improved while building the features (merged)
 
-Any stored field is one `@Field` away from being public (that's how the password
-hash reached the schema, #2), and every activity's owner costs its own database
-query. Give the API its own output classes: services return plain objects,
-resolvers map them, and a DataLoader fetches every owner in one query. A new
-field stays private until someone chooses to expose it, a list costs two queries
-at any length, and user-specific data can be added without leaking through
-`Activity.owner`.
-
-[Details](code-review/1-api-and-storage.md)
-
-## 2. One owner for identity
-
-Nothing gives one answer to "is this user logged in": the token lives in four
-places (one readable by any XSS), three layers each check part of it, a new
-operation is public unless someone remembers the guard, and tokens last ~31
-years. Make the cookie the only transport and the guard the only verifier, close
-every operation by default with `@Public()` opt-outs, and expire tokens after a
-week. Login state gets one source of truth, a stolen token stops working within
-a week, and a forgotten decorator fails closed instead of open.
-
-[Details](code-review/2-identity.md)
-
-## 3. Front-end data flow and naming
-
-Six pages copy the same server-side fetch block and each decides what to forward
-and how to fail. That's how one user's activities were shown to another (#26),
-why `/my-activities` returns a 500 when logged out, and why a page that forgets
-the cookie renders logged-out. One fetch helper with a client per request, the
-cookie always forwarded and unauthenticated errors turned into redirects, plus
-typed documents and one name per concept. Users are kept apart by design rather
-than by one setting, logged-out visitors get a redirect instead of a 500, and
-the server can resolve the user, which lets theme 2 retire the
-`withAuth`/`withoutAuth` redirects.
-
-[Details](code-review/3-front-end-data-flow.md)
-
-## 4. Put each rule in the layer that owns it
-
-Rules land wherever was convenient, so each one holds on one path and not
-another: the seeder skips price validation, a signup race surfaces as a 500, and
-a malformed id reaches Mongo. Services own their entity's rules and every write
-passes through them: duplicate keys become a 409, updates run validators, and
-ids are checked everywhere. A rule holds whoever calls (the seeder, a script, a
-future REST route), and clients get status codes they can act on.
-
-[Details](code-review/4-rule-ownership.md)
-
-## 5. Use MongoDB deliberately
-
-The only index besides `_id` is on email and no list is paginated, so every list
-query scans and returns the whole collection: invisible at seed size, slow as
-the catalog grows. Declare the four indexes the queries need, paginate with a
-cursor, build indexes in a release step instead of at boot, and read with
-`.lean()`. List latency and memory stay flat as the catalog grows, and a deploy
-no longer competes with its own index builds.
-
-[Details](code-review/5-mongodb.md)
-
-## 6. Config and environments
-
-Config is read three ways and validated nowhere, so a missing `JWT_SECRET` only
-shows up at the first login, the GraphQL playground ships to production, and the
-front-end can only point at one environment. One validated config module per
-side, environment-dependent settings read from it, and a clean clone that works
-(the compose file the scripts expect, Prettier on the front-end). A
-misconfigured deploy fails at boot with a clear message, and the front-end can
-target staging.
-
-[Details](code-review/6-config.md)
-
-## 7. Keep dependencies current
-
-48 vulnerable back-end packages (9 critical) and 8 on the front-end (2
-critical), with nothing updating them or reporting new ones, so the backlog only
-grows. Four tiers ranked by risk, starting with one small in-range PR, plus
-Dependabot and a dependency-review check on pull requests. Tier 1 alone clears 8
-of the 9 back-end criticals, and a new vulnerable dependency is caught in the PR
-that adds it.
-
-[Details](code-review/7-dependencies.md)
-
----
-
-## Improved while building the features
+These are surgical improvements that I was able to implement without growing scope or blast radius during the case study.
 
 | Change | Why it belonged with the feature | PR |
 |---|---|---|
