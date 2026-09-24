@@ -39,9 +39,10 @@ and no read uses `.lean()`.
 
 - Give the GraphQL types their own classes; the Mongoose schema stays internal
   to its module. Services return plain objects, resolvers map them.
-- `Activity.owner` becomes a public `Owner` type (names only). `getMe` already
-  returns its own `Me` type, added for `role` (Mode debug); favorites can live
-  there too.
+- `Activity.owner` becomes a public `Owner` type (names only), replacing
+  `User` in the schema. `register` only needs the new user's id (the Signup
+  document selects `id`), so it returns `ID!`. `getMe` already returns its own
+  `Me` type, added for `role` (Mode debug); favorites can live there too.
 - Resolve `owner` through a DataLoader: one `$in` query per request instead of
   one per activity.
 
@@ -49,12 +50,18 @@ and no read uses `.lean()`.
 
 It's the largest code review theme: every resolver and service in `activity`,
 `user`, `me` and `favorite` changes, plus a mapping per type. There is no data
-migration, and the public schema shouldn't change at all. Do it before adding
-anything else user-specific to `User`.
+migration. The public schema changes in two places: `Activity.owner` is typed
+`Owner`, and `register` returns `ID!`. No client selects more than names and
+ids, so the front-end only regenerates its types and retargets the `Owner`
+fragment (`graphql/fragments/owner.ts:4`). That's affordable now because the
+app has no users yet and the front-end and back-end are meant to deploy
+together, so no old client queries the new schema. Once either changes, a
+rename needs theme 3's expand-contract steps. Do it before adding anything else
+user-specific to `User`.
 
 ### How you'd verify it
 
-The CI schema diff (PR #16) should show no change. Replace the "not exposed"
+The CI schema diff (PR #16) should show only those two changes. Replace the "not exposed"
 e2e tests (`email`, `password`, `favoriteActivityIds`, `role` on `owner`) with
 one that lists each public type's fields against an allowlist, so an unintended
 field fails CI. A resolver test counts queries for

@@ -32,7 +32,7 @@ exception was nearest.
 - `@Min(1)` on price is only on the GraphQL input
   (`activity/activity.inputs.dto.ts:21`; the schema has `required` only,
   `activity/activity.schema.ts:25`). The seeder calls `create` directly and
-  skips it (`seed/seed.service.ts:31`).
+  skips it (`seed/seed.service.ts:38`).
 - Signup checks `findByEmail`, then creates (`auth/auth.service.ts:50,54`). Two
   simultaneous signups with one email are stopped only by the unique index
   (`user/user.schema.ts:29`), whose duplicate-key error nothing catches, so it
@@ -43,12 +43,12 @@ exception was nearest.
   and skip `pre('save')` hooks; Favoris introduced the first ones
   (`favorite/favorite.service.ts:35-40,45-50,60-68`). `updateToken` is the one
   load-edit-save: two round trips and a read-modify-write window for what could
-  be one `$set` (`user/user.service.ts:45-52`).
+  be one `$set` (`user/user.service.ts:52-59`).
 - `getActivity` takes `id: String!` where the rest of the schema uses `ID`, so
   a malformed id reaches Mongo and fails as a 500
   (`activity/activity.resolver.ts:74`).
 - The `ValidationPipe` is installed in `main.ts:11` and copied into the e2e
-  setup (`app.e2e.spec.ts:22`); until PR #19, the copy was missing.
+  setup (`app.e2e.spec.ts:25`); until PR #19, the copy was missing.
 - `MeModule` is one one-line resolver, nested a level deeper than every other
   module; `@Resolver('Auth')` / `@Resolver('Me')` pass name strings that do
   nothing in a code-first app (`me/resolver/me.resolver.ts:8,17`,
