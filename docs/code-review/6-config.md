@@ -4,10 +4,10 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
-The problem is that config is read three ways and checked nowhere, so mistakes
-surface late and the front-end is tied to one environment. One validated config
-per side unlocks deploys that fail at boot with a clear message, a front-end
-that can target staging, and a clean clone that works.
+The problem is that a config mistake only surfaces when the code that reads it
+runs, and the front-end is tied to one environment. One validated config per
+side unlocks deploys that fail at boot with a clear message, a front-end that
+can target staging, and a clean clone that works.
 
 Config is read three ways and validated nowhere. The back-end mixes
 `ConfigService` with raw `process.env`, and the front-end hard-codes its URLs,
