@@ -55,24 +55,26 @@ instead of leaving an operation public.
 
 Fetch server-side data through one helper, so every page keeps users apart, sees
 the logged-in user and fails the same way. Today it's hard to trust a
-server-rendered page, because six pages each copy the same fetch block and
-decide for themselves what to forward and how to fail: that's how one user's
-activities were shown to another (PR #26), and why `/my-activities` returns a
-500 when logged out. With the helper, each request gets its own client, the
-cookie is always forwarded and a logged-out visitor is redirected; alongside it,
-typed documents and one name per concept let the compiler catch mismatches.
+server-rendered page, because six pages each copy the same fetch block through
+one client that every request shares, and each copy decides for itself what to
+forward and how to fail: the shared client is how one user's activities were
+shown to another (PR #26), and a copy that throws is why `/my-activities`
+returns a 500 when logged out. With the helper, each request gets its own
+client, the cookie is always forwarded and a logged-out visitor is redirected;
+alongside it, typed documents let the compiler catch a hook given the wrong
+types, and each concept gets one name.
 
 [Read more: code-review/3-front-end-data-flow.md](code-review/3-front-end-data-flow.md)
 
 ### 4. Put each rule in the layer that owns it
 
-Put each rule in the service that owns its entity, so it holds whoever calls
-(the seeder, a script, a future REST route) and clients get status codes they
-can act on. Today it's hard to know whether a rule holds, because rules land
-wherever was convenient: the seeder skips price validation, a signup race
-surfaces as a 500, and a malformed id reaches Mongo. With services as the owner,
-every write passes through them: duplicate keys become a 409, updates run
-validators, and ids are checked everywhere.
+Put each rule in the layer that owns it, so it holds whoever calls (the seeder,
+a script, a future REST route) and clients get status codes they can act on.
+Today it's hard to know whether a rule holds, because rules land wherever was
+convenient: the seeder skips price validation, a signup race surfaces as a 500,
+and a malformed id reaches Mongo. With services owning their entity's rules,
+every write passes through them, so duplicate keys become a 409 and updates run
+validators; at the API boundary, ids are typed and checked everywhere.
 
 [Read more: code-review/4-rule-ownership.md](code-review/4-rule-ownership.md)
 
@@ -82,9 +84,9 @@ Index and paginate the queries the app actually runs, so list latency and memory
 stay flat as the catalog grows. Today it's hard to grow the catalog, because
 every list query scans and returns the whole collection: the only index besides
 `_id` is on email, and no list is paginated. With the four indexes the queries
-need, cursor pagination and `.lean()` reads, a page costs the same at any
-catalog size, and building indexes in a release step keeps deploys from
-competing with their own index builds.
+need, cursor pagination and, once theme 1 lands, `.lean()` reads, a page costs
+the same at any catalog size, and building indexes in a release step keeps
+deploys from competing with their own index builds.
 
 [Read more: code-review/5-mongodb.md](code-review/5-mongodb.md)
 

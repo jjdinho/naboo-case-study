@@ -4,14 +4,17 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 
 ### Pattern
 
-`User` and `Activity` are each one class that is both the Mongoose document and
-the GraphQL type, so a stored field stays private only if nobody adds `@Field`
-to it. That is how the password hash reached the schema (#2). It is also why
-`role` (Mode debug) and favorites can't be fields on `User`: `User` is also
-`Activity.owner`, and `getActivities` needs no login, so `getActivities { owner
-{ role } }` would list the admins. And resolvers receive full Mongoose
-documents, so `owner` calls `populate` once per activity (N+1) and no read uses
-`.lean()`.
+`User` and `Activity` each use one class for two jobs: it defines what MongoDB
+stores and what the API returns. So every stored field is one `@Field` away from
+being public. That is how the password hash reached the schema (#2).
+
+It also blocks new fields. Every activity returns its owner as a `User`, and
+`getActivities` needs no login. Put `role` on `User` and anyone could run
+`getActivities { owner { role } }` to list the admins. Favorites have the same
+problem.
+
+Finally, resolvers get full Mongoose documents, not plain objects. So `owner`
+runs one `populate` per activity (N+1), and no read uses `.lean()`.
 
 ### Direction
 
