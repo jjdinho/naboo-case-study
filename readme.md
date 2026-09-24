@@ -6,8 +6,10 @@ This fork holds the case study: a code review and two features, Favoris and
 Mode debug. Everything is merged into `master`.
 
 - **Code review:** [docs/code-review.md](docs/code-review.md). What the codebase
-  gets right, seven improvement themes ordered by value (each with its own doc
-  in [docs/code-review/](docs/code-review/)), and the fixes made along the way.
+  gets right, seven improvement themes ordered by value, and the fixes made
+  along the way. Each theme has its own proposal in
+  [docs/code-review/](docs/code-review/), written to become a spec once the work
+  is picked up.
 - **Favoris:** add or remove a favorite from an activity's page, then view and
   reorder favorites on the profile. Spec:
   [docs/specs/favoris.md](docs/specs/favoris.md). PRs [#19](https://github.com/jjdinho/naboo-case-study/pull/19), [#20](https://github.com/jjdinho/naboo-case-study/pull/20), [#21](https://github.com/jjdinho/naboo-case-study/pull/21), [#22](https://github.com/jjdinho/naboo-case-study/pull/22).
