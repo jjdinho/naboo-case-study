@@ -72,8 +72,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await signin({ variables: { signInInput: input } });
       const token = response.data?.login?.access_token || "";
       localStorage.setItem("token", token);
-      await getUser().then((res) => setUser(res.data?.getMe || null));
-      router.push("/profil");
+      const res = await getUser();
+      // Profile first: the sign-in page left with a user redirects to /.
+      await router.push("/profil");
+      setUser(res.data?.getMe || null);
     } catch (err) {
       snackbar.error("Une erreur est survenue");
     } finally {
