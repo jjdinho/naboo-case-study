@@ -39,7 +39,7 @@ instead of one per activity, so a list costs two queries at any length.
 
 [Read more: code-review/1-api-and-storage.md](code-review/1-api-and-storage.md)
 
-### 2. One owner for identity
+### 2. One owner for identity and auth
 
 Give login one owner, the cookie for transport and the guard for verification,
 so there's one answer to "is this user logged in" and a stolen token stops

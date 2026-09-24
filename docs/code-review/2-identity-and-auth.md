@@ -1,4 +1,4 @@
-# 2. One owner for identity, auth closed by default (Public opt-in)
+# 2. One owner for identity and auth
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
@@ -21,7 +21,7 @@ in a week. Login also becomes easier to maintain and debug.
 ### Current state
 
 The token lives in four places: an httpOnly cookie, a `jwt` header
-(`app.module.ts:37`), localStorage (`contexts/authContext.tsx:58,74,100`), and
+(`app.module.ts:37`), localStorage (`contexts/authContext.tsx:58,74,102`), and
 `user.token`, which every login writes and nothing reads
 (`user/user.schema.ts:36`, `auth/auth.service.ts:29`).
 

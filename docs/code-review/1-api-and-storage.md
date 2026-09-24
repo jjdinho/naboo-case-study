@@ -39,9 +39,9 @@ and no read uses `.lean()`.
 
 - Give the GraphQL types their own classes; the Mongoose schema stays internal
   to its module. Services return plain objects, resolvers map them.
-- `Activity.owner` becomes a public `Owner` type (names only). `getMe` already
-  returns its own `Me` type, added for `role` (Mode debug); favorites can live
-  there too.
+- `Activity.owner` and `register` keep the public `User` type (names only),
+  now its own class instead of the Mongoose one. `getMe` already returns its
+  own `Me` type, added for `role` (Mode debug); favorites can live there too.
 - Resolve `owner` through a DataLoader: one `$in` query per request instead of
   one per activity.
 
@@ -49,8 +49,10 @@ and no read uses `.lean()`.
 
 It's the largest code review theme: every resolver and service in `activity`,
 `user`, `me` and `favorite` changes, plus a mapping per type. There is no data
-migration, and the public schema shouldn't change at all. Do it before adding
-anything else user-specific to `User`.
+migration, and the public schema shouldn't change at all. Renaming `User` to
+`Owner` would be cheap while the app has no users and the front-end and
+back-end deploy together, but it's a naming choice, not something the split
+needs. Do it before adding anything else user-specific to `User`.
 
 ### How you'd verify it
 
