@@ -2,11 +2,13 @@
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
-**The pattern.** `ActivityService` and `UserService` are mostly one-to-three
-line pass-throughs, so rules land wherever was convenient: query construction
-in resolvers (the regex injection, #4, was one), value checks only on the
-GraphQL input, uniqueness only in a MongoDB index, and errors in whichever
-exception was nearest. Each rule then holds on one path and not another.
+### Pattern
+
+`ActivityService` and `UserService` are mostly one-to-three line pass-throughs,
+so rules land wherever was convenient: query construction in resolvers (the
+regex injection, #4, was one), value checks only on the GraphQL input,
+uniqueness only in a MongoDB index, and errors in whichever exception was
+nearest. Each rule then holds on one path and not another.
 
 - `@Min(1)` on price is only on the GraphQL input; the seeder calls `create`
   directly and skips it.
@@ -27,7 +29,7 @@ exception was nearest. Each rule then holds on one path and not another.
   module; `@Resolver('Auth')` / `@Resolver('Me')` pass name strings that do
   nothing in a code-first app.
 
-**The direction.**
+### Direction
 
 - Services are the module of record for their entity: query construction,
   input escaping, not-found semantics, business rules. Resolvers only translate
@@ -43,14 +45,16 @@ exception was nearest. Each rule then holds on one path and not another.
   production get the same setup.
 - Fold `MeModule` into the user module; drop the name strings.
 
-**Effect on the project.** A rule holds whoever calls: the seeder, a script, a
-future REST route. A signup race returns 409, and clients can branch on status
-codes. Each move is a small, independent PR. 401 → 409 changes the contract,
-but the front-end shows a generic error either way. A Mongoose `min` rejects
-existing bad documents on their next save, so check the data first. If theme 1
-is planned, do it first: it rewrites the same services.
+### Effect on the project
 
-**Evidence.**
+A rule holds whoever calls: the seeder, a script, a future REST route. A signup
+race returns 409, and clients can branch on status codes. Each move is a small,
+independent PR. 401 → 409 changes the contract, but the front-end shows a
+generic error either way. A Mongoose `min` rejects existing bad documents on
+their next save, so check the data first. If theme 1 is planned, do it first: it
+rewrites the same services.
+
+### Evidence
 
 - `activity/activity.inputs.dto.ts:21` — `@Min(1)`; `seed/seed.service.ts:31`
   — the seeder's direct `create`; `activity/activity.schema.ts:25` — `required`

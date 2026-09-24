@@ -2,17 +2,19 @@
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
-**The pattern.** Config is read three ways and validated nowhere. The back-end
-mixes `ConfigService` with raw `process.env`, and the front-end hard-codes its
-URLs, so it can only ever point at one environment. With no validation schema,
-a missing variable fails at first use: a missing `JWT_SECRET` only shows up
-when someone logs in. Development settings ship to production: the GraphQL
-playground is always on. The tooling drifts the same way. The database scripts
-call `docker-compose`, but the repo has no compose file. The back-end enforces
+### Pattern
+
+Config is read three ways and validated nowhere. The back-end mixes
+`ConfigService` with raw `process.env`, and the front-end hard-codes its URLs,
+so it can only ever point at one environment. With no validation schema, a
+missing variable fails at first use: a missing `JWT_SECRET` only shows up when
+someone logs in. Development settings ship to production: the GraphQL playground
+is always on. The tooling drifts the same way. The database scripts call
+`docker-compose`, but the repo has no compose file. The back-end enforces
 Prettier in CI; the front-end has neither the dependency nor a config. A fresh
 install under npm's `ignore-scripts` fails on bcrypt (theme 7).
 
-**The direction.**
+### Direction
 
 - One config module per side. The back-end reads everything through
   `ConfigService`, with a validation schema that fails at boot and names what's
@@ -22,13 +24,15 @@ install under npm's `ignore-scripts` fails on bcrypt (theme 7).
 - A clean clone works: add the compose file the scripts expect, and pin
   Prettier on the front-end with the back-end's config, checked in CI.
 
-**Effect on the project.** A misconfigured deploy fails at boot with a clear
-message instead of at the first login, and the front-end can target staging.
-It's all small; `.env.dist` already lists every variable the schema needs.
-Formatting the front-end once is a large, mechanical diff, so it gets its own
-PR. The validation schema is the cheapest first step.
+### Effect on the project
 
-**Evidence.**
+A misconfigured deploy fails at boot with a clear message instead of at the
+first login, and the front-end can target staging. It's all small; `.env.dist`
+already lists every variable the schema needs. Formatting the front-end once is
+a large, mechanical diff, so it gets its own PR. The validation schema is the
+cheapest first step.
+
+### Evidence
 
 - `app.module.ts:77` (`MONGO_URI`), `main.ts:10` (`FRONTEND_URL`),
   `auth/auth.resolver.ts:18,35` (`FRONTEND_DOMAIN`) — raw `process.env`.

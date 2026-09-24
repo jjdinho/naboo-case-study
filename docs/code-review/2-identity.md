@@ -2,18 +2,19 @@
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
-**The pattern.** The token lives in four places: an httpOnly cookie, a `jwt`
-header, localStorage, and `user.token`, which every login writes and nothing
-reads. Three layers share checking it: the GraphQL context factory verifies
-it, the guard only checks a payload exists, and resolvers read
-`context.jwtPayload.id` by hand — typed non-null, though anonymous requests
-carry `null`. So there's no single answer to "is this user logged in". The
-localStorage copy is XSS-readable and outlives the cookie, and the stale-cookie
-outage (#9) came from the same split. Guards are opt-in, so a new operation is
-public until someone remembers the decorator. Tokens last ~31 years with no
-revocation.
+### Pattern
 
-**The direction.**
+The token lives in four places: an httpOnly cookie, a `jwt` header,
+localStorage, and `user.token`, which every login writes and nothing reads.
+Three layers share checking it: the GraphQL context factory verifies it, the
+guard only checks a payload exists, and resolvers read `context.jwtPayload.id`
+by hand — typed non-null, though anonymous requests carry `null`. So there's no
+single answer to "is this user logged in". The localStorage copy is XSS-readable
+and outlives the cookie, and the stale-cookie outage (#9) came from the same
+split. Guards are opt-in, so a new operation is public until someone remembers
+the decorator. Tokens last ~31 years with no revocation.
+
+### Direction
 
 - The cookie is the only transport. Drop the `jwt` header, the localStorage
   token, `user.token` and `updateToken`. `login` returns the `User`, not
@@ -35,15 +36,17 @@ revocation.
   the `withAuth`/`withoutAuth` HOCs can go. Until then, merge the two mirror
   images into one.
 
-**Effect on the project.** One source of truth for login state, a token XSS
-can't read, a forgotten decorator that fails closed, and a stolen token that
-expires in a week. It touches login and logout on both sides and every guarded
-resolver. Hard navigations show a loading state, since auth costs a round trip,
-until the server resolves `me`. Shortening token lifetime logs everyone out
-once. Settle the transport before moving verification into the guard, or the
-same code moves twice; `@Public()` is independent and the cheapest step.
+### Effect on the project
 
-**Evidence.**
+One source of truth for login state, a token XSS can't read, a forgotten
+decorator that fails closed, and a stolen token that expires in a week. It
+touches login and logout on both sides and every guarded resolver. Hard
+navigations show a loading state, since auth costs a round trip, until the
+server resolves `me`. Shortening token lifetime logs everyone out once. Settle
+the transport before moving verification into the guard, or the same code moves
+twice; `@Public()` is independent and the cheapest step.
+
+### Evidence
 
 - `app.module.ts:37` — the header branch; `contexts/authContext.tsx:58,74,100`
   — localStorage; `user/user.schema.ts:36` and `auth/auth.service.ts:29` —

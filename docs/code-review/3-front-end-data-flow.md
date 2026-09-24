@@ -2,9 +2,11 @@
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
-**The pattern.** Six pages each copy the same `getServerSideProps` block, all
-through one module-level Apollo client that every request shares, and each copy
-decides for itself what to forward and what to do on failure.
+### Pattern
+
+Six pages each copy the same `getServerSideProps` block, all through one
+module-level Apollo client that every request shares, and each copy decides for
+itself what to forward and what to do on failure.
 
 - Until #26, that client answered from its cache: `/my-activities` showed a
   second user the first user's activities, and server-rendered lists stayed
@@ -18,7 +20,7 @@ decides for itself what to forward and what to do on failure.
 Around the data, one concept has several names across layers, and each hook is
 matched with its document's types by hand.
 
-**The direction.**
+### Direction
 
 - One server-side fetch helper: a new client per request, the cookie always
   forwarded, and an unauthenticated error turned into a redirect to `/signin`.
@@ -53,15 +55,16 @@ registry (Apollo GraphOS, GraphQL Hive), persisted queries and expand-contract
 changes (add, deprecate, migrate, drain, remove) earn their keep. Not worth it
 with one repo and one deploy.
 
-**Effect on the project.** A logged-out visitor gets a redirect instead of a
-500, every page sees the user, server-resolved auth becomes possible (theme 2),
-and keeping users apart no longer rests on one fetch-policy line. The helper
-touches seven files: itself and the six pages, four of which change behaviour —
-that's the point. `client-preset`
-is a mechanical change across all 15 hook and `query` calls; nothing depends on
-it. Do it before the renames, so the compiler checks them.
+### Effect on the project
 
-**Evidence.**
+A logged-out visitor gets a redirect instead of a 500, every page sees the user,
+server-resolved auth becomes possible (theme 2), and keeping users apart no
+longer rests on one fetch-policy line. The helper touches seven files: itself
+and the six pages, four of which change behaviour — that's the point.
+`client-preset` is a mechanical change across all 15 hook and `query` calls;
+nothing depends on it. Do it before the renames, so the compiler checks them.
+
+### Evidence
 
 - `graphql/apollo.ts:3` — the shared client, `:11` — its `no-cache` default;
   `pages/_app.tsx:14` — also the browser's.
