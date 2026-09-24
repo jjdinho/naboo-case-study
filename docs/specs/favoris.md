@@ -135,7 +135,7 @@ Done when:
 - **PR descriptions are short and precise:** what changed, why, and how it was
   tested. No narrative, and no restating the diff.
 - **Scope.** Improve code only where the feature already touches it. Anything
-  else you find goes into `docs/suggestions.md` as a recommendation, not a fix.
+  else you find goes into `docs/code-review.md` as a recommendation, not a fix.
 - **Before opening a PR**, check `master` for recently merged work that
   overlaps; other workspaces run in parallel.
 - **Keep generated GraphQL artifacts in sync.** CI fails if `schema.gql` drifts
