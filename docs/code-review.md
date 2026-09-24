@@ -4,7 +4,9 @@ This is a living document which gets updated as work gets done.
 Contained defects are fixed and merged (table below). The rest is grouped into
 seven themes, ordered by value. Each has a summary here and its own doc with the
 detail: the problem, the suggested fix and what it unlocks, the current state,
-what would change, what it would cost, and how you'd verify it.
+what would change, what it would cost, and how you'd verify it. Each theme doc
+is a proposal: enough to decide whether the work is worth doing. Once a theme is
+picked up, it can become a spec in `docs/specs/` with decisions and a PR plan.
 
 ---
 
