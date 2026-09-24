@@ -2,20 +2,32 @@
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
-### Pattern
+### Problem
 
-The problem is that nothing keeps dependencies current, so known vulnerabilities
-pile up unnoticed. Updating in ranked tiers and automating the rest would unlock: a
-cleared backlog (tier 1 alone clears 8 of the 9 back-end criticals) and new
-vulnerable dependencies caught in the PR that adds them.
+Nothing keeps dependencies current, so known vulnerabilities pile up unnoticed.
+
+### Suggestion
+
+Update in tiers ranked by risk, and automate the rest.
+
+### Impact
+
+This would unlock: a cleared backlog (tier 1 alone clears 8 of the 9 back-end
+criticals) and new vulnerable dependencies caught in the PR that adds them.
+
+### Current state
 
 `npm audit --omit=dev`, 2026-09-23: 48 vulnerable packages on the back-end (9
 critical, 25 high) and 8 on the front-end (2 critical), one of them Next with 35
 advisories. Nothing updates dependencies or reports new advisories, so the
 backlog only grows. Three back-end dependencies are imported nowhere:
-`@apollo/gateway`, `ts-morph`, `class-transformer-validator`.
+`@apollo/gateway`, `ts-morph`, `class-transformer-validator`
+(`back-end/package.json:27,39,46`).
 
-### Direction
+The back-end is on bcrypt 5 (`back-end/package.json:37`); the front-end is on
+Next 13.4.10 (`front-end/package.json:27`) and Mantine 6 (`:19`).
+
+### Changes needed
 
 Ranked by risk. Each tier's after-count was simulated on scratch copies of the
 lockfiles.
@@ -42,18 +54,11 @@ To stop it recurring: Dependabot security updates for the backlog, and
 adds a vulnerable dependency. A plain `npm audit` gate would go red on
 advisories published overnight, against PRs that didn't touch dependencies.
 
-### Effect on the project
+### Cost
 
-Tier 1 clears 8 of the 9 back-end criticals for one small PR. Tier 2 is a
-framework upgrade with a real blast radius; tier 3 is a project. Prevention is a
-Dependabot config and one CI step. Do tier 1 first; it also shrinks the diff
-tier 2 has to review.
-
-### Evidence
-
-- `back-end/package.json:27,39,46` — the three unused dependencies; `:37` —
-  bcrypt 5.
-- `front-end/package.json:27` — Next 13.4.10; `:19` — Mantine 6.
+Tier 1 is one small PR. Tier 2 is a framework upgrade with a real blast radius;
+tier 3 is a project. Prevention is a Dependabot config and one CI step. Do tier
+1 first; it also shrinks the diff tier 2 has to review.
 
 ### How you'd verify it
 

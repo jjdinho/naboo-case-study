@@ -3,8 +3,8 @@
 This is a living document which gets updated as work gets done.
 Contained defects are fixed and merged (table below). The rest is grouped into
 seven themes, ordered by value. Each has a summary here and its own doc with the
-detail: the pattern behind a set of findings, what would change, what it would
-cost, and how you'd verify it.
+detail: the problem, the suggested fix and what it unlocks, the current state,
+what would change, what it would cost, and how you'd verify it.
 
 ---
 
@@ -49,7 +49,7 @@ part of it, and tokens last ~31 years. With one owner, every operation is closed
 by default with `@Public()` opt-outs, so a forgotten decorator fails closed
 instead of leaving an operation public.
 
-[Read more: code-review/2-identity.md](code-review/2-identity.md)
+[Read more: code-review/2-identity-and-auth.md](code-review/2-identity-and-auth.md)
 
 ### 3. Front-end data flow and naming
 
@@ -66,17 +66,18 @@ types, and each concept gets one name.
 
 [Read more: code-review/3-front-end-data-flow.md](code-review/3-front-end-data-flow.md)
 
-### 4. Put each rule in the layer that owns it
+### 4. Keep business logic in the service layer
 
-Put each rule in the layer that owns it, so it holds whoever calls (the seeder,
-a script, a future REST route) and clients get status codes they can act on.
-Today it's hard to know whether a rule holds, because rules land wherever was
+Keep business logic in the services, so it holds whoever calls (the seeder, a
+script, a future REST route) and clients get status codes they can act on.
+Today it's hard to know whether it holds, because it lands wherever was
 convenient: the seeder skips price validation, a signup race surfaces as a 500,
-and a malformed id reaches Mongo. With services owning their entity's rules,
-every write passes through them, so duplicate keys become a 409 and updates run
-validators; at the API boundary, ids are typed and checked everywhere.
+and a malformed id reaches Mongo. With services owning their entity's business
+logic and an exception filter mapping duplicate keys to a 409, every write
+passes through the same checks; at the API boundary, a global `ValidationPipe`
+and typed ids cover every operation.
 
-[Read more: code-review/4-rule-ownership.md](code-review/4-rule-ownership.md)
+[Read more: code-review/4-business-logic.md](code-review/4-business-logic.md)
 
 ### 5. Use MongoDB deliberately
 

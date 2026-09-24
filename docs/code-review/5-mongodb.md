@@ -2,16 +2,28 @@
 
 Paths are relative to `back-end/src/` or `front-end/src/`.
 
-### Pattern
+### Problem
 
-The problem is that no list query has a matching index or a page size, so each
-one costs more as the catalog grows. Indexing and paginating them would unlock: flat
-list latency and memory, and deploys that don't build indexes against live
-traffic.
+No list query has a matching index or a page size, so each one costs more as
+the catalog grows. Indexes are also built at boot, against live traffic.
 
-The only index besides `_id` is the unique `email`, and no list is paginated. At
-seed size that's invisible; as the catalog grows, every list query scans the
-whole collection and returns all of it.
+### Suggestion
+
+Index and paginate every list query, and build indexes before deploy.
+
+### Impact
+
+This would unlock: list latency and memory that stay flat as the catalog grows,
+and deploys that don't build indexes against live traffic.
+
+### Current state
+
+The only index besides `_id` is the unique `email` (`user/user.schema.ts:29`),
+and no list is paginated: `findAll` returns the whole collection
+(`activity/activity.service.ts:17`). At seed size that's invisible; as the
+catalog grows, every list query scans the whole collection and returns all of
+it. The list queries (`activity/activity.service.ts:17,21,25,55,59`) and the
+indexes they'd need:
 
 | Query | Filter and sort | Index it needs |
 |---|---|---|
@@ -28,7 +40,7 @@ Mongoose also builds every declared index when the app starts. In production,
 a new index on a large collection builds during the deploy, competing with live
 traffic, and a new unique index that existing data violates fails to build.
 
-### Direction
+### Changes needed
 
 - Declare the indexes above on the schemas.
 - Paginate lists with a cursor on `createdAt` and `_id`, which the
@@ -37,19 +49,12 @@ traffic, and a new unique index that existing data violates fails to build.
   and a release step that runs `syncIndexes`.
 - Read with `.lean()` once theme 1 stops handing documents to resolvers.
 
-### Effect on the project
+### Cost
 
-List latency and memory stay flat as the catalog grows. Indexes are cheap now: a
-little write overhead, and seed-sized builds are instant. Pagination is the
-expensive part — it changes the `getActivities` contract and every list page.
-Add the indexes first, since they change no contract. Paginate alongside theme
-3's helper, which touches the same pages.
-
-### Evidence
-
-- `user/user.schema.ts:29` — the only index.
-- `activity/activity.service.ts:17,21,25,55,59` — the queries above;
-  `:17` — `findAll` returns the whole collection.
+Indexes are cheap now: a little write overhead, and seed-sized builds are
+instant. Pagination is the expensive part — it changes the `getActivities`
+contract and every list page. Add the indexes first, since they change no
+contract. Paginate alongside theme 3's helper, which touches the same pages.
 
 ### How you'd verify it
 
