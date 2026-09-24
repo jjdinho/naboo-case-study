@@ -1,3 +1,4 @@
+import { withAuth } from "@/hocs";
 import { useAuth } from "@/hooks";
 import {
   ApolloClient,
@@ -6,7 +7,7 @@ import {
   InMemoryCache,
   NormalizedCacheObject,
 } from "@apollo/client";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { AuthProvider } from "../authContext";
 
@@ -61,7 +62,7 @@ describe("auth", () => {
   afterEach(() => {
     localStorage.clear();
     session = null;
-    push.mockClear();
+    push.mockReset();
   });
 
   it("signs in the next user after a logout, not the previous one", async () => {
@@ -88,5 +89,40 @@ describe("auth", () => {
     await act(() => result.current.handleLogout());
 
     expect(client.extract()).toEqual({});
+  });
+
+  it("sends a user logging out of a protected page home, not to /signin", async () => {
+    const ProtectedPage = withAuth(() => null);
+    let onHome = false;
+    const { result, rerender } = renderHook(() => useAuth(), {
+      wrapper: ({ children }) => (
+        <Providers>
+          {!onHome && <ProtectedPage />}
+          {children}
+        </Providers>
+      ),
+    });
+    await act(() =>
+      result.current.handleSignin({ email: "user1@test.fr", password: "b" })
+    );
+    push.mockClear();
+    // Like Next: the new page replaces the protected one once it has loaded.
+    push.mockImplementation(async (path: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      if (path === "/") {
+        onHome = true;
+        rerender();
+      }
+    });
+
+    // React renders while the navigation is under way, as in a browser.
+    let loggingOut = Promise.resolve();
+    act(() => {
+      loggingOut = result.current.handleLogout();
+    });
+    await waitFor(() => expect(onHome).toBe(true));
+    await act(() => loggingOut);
+
+    expect(push).not.toHaveBeenCalledWith("/signin");
   });
 });

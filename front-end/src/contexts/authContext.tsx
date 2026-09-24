@@ -100,8 +100,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem("token");
       // Forget this user's data, so the next one to sign in can't see it.
       await client.clearStore();
+      // Home first: a protected page left without a user redirects to /signin.
+      await router.push("/");
       setUser(null);
-      router.push("/");
     } catch (err) {
       snackbar.error("Une erreur est survenue");
     } finally {

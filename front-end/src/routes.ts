@@ -20,7 +20,7 @@ export const routes: Route[] = [
         requiredAuth: false,
       },
       { label: "Profil", link: "/profil", requiredAuth: true },
-      { label: "Déconnection", link: "/logout", requiredAuth: true },
+      { label: "Déconnection", action: "logout", requiredAuth: true },
     ],
   },
 ];
