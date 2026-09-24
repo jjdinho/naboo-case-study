@@ -38,6 +38,7 @@ change, and what it would cost.
 | Every activity owner's email was public through `Activity.owner` | `user/user.schema.ts` | #30 |
 | Signing in after a logout showed the previous user, from the browser's cache | `contexts/authContext.tsx` | #33 |
 | Logging out sent a request on every render of the `/logout` page; it's now a menu action | `routes.ts`, `components/Topbar/MenuItem.tsx` | #34 |
+| Signing in landed on `/`, not `/profil`: the sign-in page redirected mid-navigation | `contexts/authContext.tsx` | #35 |
 
 Paths below are relative to `back-end/src/` or `front-end/src/`.
 
