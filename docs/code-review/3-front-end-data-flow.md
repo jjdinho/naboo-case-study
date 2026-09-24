@@ -75,7 +75,8 @@ nothing depends on it. Do it before the renames, so the compiler checks them.
   `access_token`.
 - `pages/activities/[id].tsx:40` — the `<title>`.
 
-**How you'd verify it.** #26's test sends two cookies through the shared client
-and expects two answers; with the helper, it moves to the helper. A logged-out
-call returns a redirect rather than throwing. Test `ActivityForm`, which has no
-coverage.
+### How you'd verify it
+
+#26's test sends two cookies through the shared client and expects two answers;
+with the helper, it moves to the helper. A logged-out call returns a redirect
+rather than throwing. Test `ActivityForm`, which has no coverage.

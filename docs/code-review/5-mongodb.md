@@ -46,6 +46,8 @@ Add the indexes first, since they change no contract. Paginate alongside theme
 - `activity/activity.service.ts:17,21,25,55,59` — the queries above;
   `:17` — `findAll` returns the whole collection.
 
-**How you'd verify it.** Run each list query's `explain()` against the
-in-memory Mongo and assert an index scan, not a collection scan. Page through
-N+1 activities with a page size of N and see each once, in order.
+### How you'd verify it
+
+Run each list query's `explain()` against the in-memory Mongo and assert an
+index scan, not a collection scan. Page through N+1 activities with a page size
+of N and see each once, in order.

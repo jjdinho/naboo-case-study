@@ -63,9 +63,11 @@ twice; `@Public()` is independent and the cheapest step.
 - `auth/auth.service.ts:21` — an unknown email throws "User not found";
   `:25` — "Wrong credentials provided"; `:52` — a taken email is a 401.
 
-**How you'd verify it.** Back-end e2e tests for the failure paths, where a
-regression is silent: wrong password, expired token, no cookie on each
-protected operation. One e2e test lists every query and mutation from the
-schema and asserts which are public, so a new operation fails until someone
-classifies it. On the front-end, #33 tests login and logout in
-`authContext.tsx`; add user-or-`null` after mount, and the HOCs.
+### How you'd verify it
+
+Back-end e2e tests for the failure paths, where a regression is silent: wrong
+password, expired token, no cookie on each protected operation. One e2e test
+lists every query and mutation from the schema and asserts which are public, so
+a new operation fails until someone classifies it. On the front-end, #33 tests
+login and logout in `authContext.tsx`; add user-or-`null` after mount, and the
+HOCs.

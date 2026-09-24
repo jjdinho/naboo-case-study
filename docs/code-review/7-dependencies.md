@@ -50,5 +50,7 @@ tier 2 has to review.
   bcrypt 5.
 - `front-end/package.json:27` — Next 13.4.10; `:19` — Mantine 6.
 
-**How you'd verify it.** The full test suites, build and a browser pass after
-each tier; `npm audit --omit=dev` matches the simulated after-count.
+### How you'd verify it
+
+The full test suites, build and a browser pass after each tier; `npm audit
+--omit=dev` matches the simulated after-count.

@@ -40,8 +40,10 @@ shouldn't change at all. Do it before adding anything else user-specific to
   private by omission; `:38-44` — favorites kept off for the same reason.
 - `activity/activity.resolver.ts:34-38` — `populate('owner')` per activity.
 
-**How you'd verify it.** The CI schema diff (#16) should show no change. Replace
-the "not exposed" e2e tests (`email`, `password`, `favoriteActivityIds`, `role`
-on `owner`) with one that lists each public type's fields against an allowlist,
-so an unintended field fails CI. A resolver test counts queries for
-`getActivities { owner { id } }`: two, whatever the list length.
+### How you'd verify it
+
+The CI schema diff (#16) should show no change. Replace the "not exposed" e2e
+tests (`email`, `password`, `favoriteActivityIds`, `role` on `owner`) with one
+that lists each public type's fields against an allowlist, so an unintended
+field fails CI. A resolver test counts queries for `getActivities { owner { id }
+}`: two, whatever the list length.

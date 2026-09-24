@@ -67,8 +67,9 @@ rewrites the same services.
 - `main.ts:11`, `app.e2e.spec.ts:22` — the two pipes.
 - `me/resolver/me.resolver.ts:8,17`, `auth/auth.resolver.ts:6`.
 
-**How you'd verify it.** Service tests: `create` with price 0 is rejected
-without the input DTO; two concurrent `signUp`s with one email give one user
-and one `ConflictException`. E2E: `getActivity(id: "nope")` is a
-`BAD_REQUEST`, a duplicate signup is a 409, and the #19 validation test passes
-with the copied pipe line removed.
+### How you'd verify it
+
+Service tests: `create` with price 0 is rejected without the input DTO; two
+concurrent `signUp`s with one email give one user and one `ConflictException`.
+E2E: `getActivity(id: "nope")` is a `BAD_REQUEST`, a duplicate signup is a 409,
+and the #19 validation test passes with the copied pipe line removed.

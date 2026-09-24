@@ -42,5 +42,7 @@ cheapest first step.
 - `back-end/package.json:16-18` — `docker-compose` scripts; `back-end/.prettierrc`
   is the only Prettier config.
 
-**How you'd verify it.** A test boots the config module without `JWT_SECRET`
-and expects it to throw. CI runs `prettier --check` on the front-end.
+### How you'd verify it
+
+A test boots the config module without `JWT_SECRET` and expects it to throw. CI
+runs `prettier --check` on the front-end.
