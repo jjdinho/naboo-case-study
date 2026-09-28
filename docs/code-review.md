@@ -77,7 +77,7 @@ convenient: the seeder skips price validation, a signup race surfaces as a 500,
 and a malformed id reaches Mongo. With services owning their entity's business
 logic and an exception filter mapping duplicate keys to a 409, every write
 passes through the same checks; at the API boundary, a global `ValidationPipe`
-and typed ids cover every operation.
+and validated arguments cover every operation.
 
 [Read more: code-review/4-business-logic.md](code-review/4-business-logic.md)
 
@@ -89,7 +89,8 @@ every list query scans and returns the whole collection: the only index besides
 `_id` is on email, and no list is paginated. With the four indexes the queries
 need, cursor pagination and, once theme 1 lands, `.lean()` reads, a page costs
 the same at any catalog size, and building indexes in a release step keeps
-deploys from competing with their own index builds.
+deploys from competing with their own index builds. A complexity limit stops
+one request from repeating a list query through aliases.
 
 [Read more: code-review/5-mongodb.md](code-review/5-mongodb.md)
 

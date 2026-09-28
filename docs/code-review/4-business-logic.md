@@ -5,13 +5,14 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 ### Problem
 
 Business logic sits wherever it happened to be written: resolvers, input DTOs,
-a MongoDB index. So it holds on one path and not another.
+a MongoDB index. So it holds on one path and not another, and some arguments
+aren't checked at all.
 
 ### Suggestion
 
 Keep business logic in the services (Nest's providers), and enforce it where
 every write passes through, using Nest's own tools: a global `ValidationPipe`,
-an exception filter, and `@IsMongoId` on every id.
+an exception filter, and a validated class for every argument.
 
 ### Impact
 
@@ -47,6 +48,11 @@ exception was nearest.
 - `getActivity` takes `id: String!` where the rest of the schema uses `ID`, so
   a malformed id reaches Mongo and fails as a 500
   (`activity/activity.resolver.ts:74`).
+- `getActivitiesByCity`'s filters are plain arguments, which the
+  `ValidationPipe` skips (`activity/activity.resolver.ts:66-68`). Bad values
+  match nothing rather than fail, so an empty `city` returns `[]` instead of a
+  `BAD_REQUEST`. No string input has a length cap beyond Express's 100kb body
+  limit.
 - The `ValidationPipe` is installed in `main.ts:11` and copied into the e2e
   setup (`app.e2e.spec.ts:25`); until PR #19, the copy was missing.
 - `MeModule` is one one-line resolver, nested a level deeper than every other
@@ -67,7 +73,9 @@ exception was nearest.
   `UnauthorizedException`, for a taken email.
 - Update queries pass `runValidators: true`; single-field writes are atomic
   `$set`s.
-- Ids are typed `ID` and checked with `@IsMongoId` everywhere, as Favoris does.
+- Every argument is a validated class, as Favoris does: ids typed `ID` and
+  checked with `@IsMongoId`, `getActivitiesByCity`'s filters an `@ArgsType`,
+  and a `@MaxLength` on each string input.
 - Register the `ValidationPipe` as a global pipe through `APP_PIPE` in
   `AppModule`, so tests and production get the same setup.
 - Fold `MeModule` into the user module; drop the name strings.
@@ -83,5 +91,6 @@ planned, do it first: it rewrites the same services.
 
 Service test: `create` with price 0 is rejected without the input DTO. E2E: two
 concurrent `signUp`s with one email give one user and one 409, a duplicate
-signup is a 409, `getActivity(id: "nope")` is a `BAD_REQUEST`, and the PR #19
-validation test passes with the copied pipe line removed.
+signup is a 409, `getActivity(id: "nope")` is a `BAD_REQUEST`,
+`getActivitiesByCity(city: "")` is a `BAD_REQUEST`, and the PR #19 validation
+test passes with the copied pipe line removed.

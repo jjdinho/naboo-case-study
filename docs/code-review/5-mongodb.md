@@ -5,16 +5,19 @@ Paths are relative to `back-end/src/` or `front-end/src/`.
 ### Problem
 
 No list query has a matching index or a page size, so each one costs more as
-the catalog grows. Indexes are also built at boot, against live traffic.
+the catalog grows, and there's no complexity limit, so one request can run as
+many as it likes. Indexes are also built at boot, against live traffic.
 
 ### Suggestion
 
-Index and paginate every list query, and build indexes before deploy.
+Index and paginate every list query, add a query complexity limit, and build
+indexes before deploy.
 
 ### Impact
 
 This would unlock: list latency and memory that stay flat as the catalog grows,
-and deploys that don't build indexes against live traffic.
+a ceiling on each request's complexity, and deploys that don't build indexes
+against live traffic.
 
 ### Current state
 
@@ -36,6 +39,12 @@ indexes they'd need:
 match narrows it first. Favorites are the counter-example: always read for one
 user by `_id`, so they need no index.
 
+Nothing bounds how many list queries one request runs, either. Aliases repeat a
+field as often as the client likes, so one request can ask for
+`getActivities { owner { id } }` a thousand times: a thousand full scans, each
+with one `populate` per activity (theme 1). A depth limit wouldn't help: the
+schema has no cycles, so no query goes deeper than three levels.
+
 Mongoose also builds every declared index when the app starts. In production,
 a new index on a large collection builds during the deploy, competing with live
 traffic, and a new unique index that existing data violates fails to build.
@@ -48,6 +57,9 @@ traffic, and a new unique index that existing data violates fails to build.
 - Build indexes before deploy, not at boot: `autoIndex: false` in production
   and a release step that runs `syncIndexes`.
 - Read with `.lean()` once theme 1 stops handing documents to resolvers.
+- A query complexity limit (`graphql-query-complexity`, as an Apollo plugin),
+  so aliases can't multiply list queries. Once lists are paginated, it scores
+  each by its page size.
 
 ### Cost
 
@@ -55,9 +67,12 @@ Indexes are cheap now: a little write overhead, and seed-sized builds are
 instant. Pagination is the expensive part — it changes the `getActivities`
 contract and every list page. Add the indexes first, since they change no
 contract. Paginate alongside theme 3's helper, which touches the same pages.
+The complexity limit is one dependency and one plugin, and changes nothing for
+the front-end's queries if the limit is set from its largest.
 
 ### How you'd verify it
 
 Run each list query's `explain()` against the in-memory Mongo and assert an
 index scan, not a collection scan. Page through N+1 activities with a page size
-of N and see each once, in order.
+of N and see each once, in order. A query with more aliases than the limit
+allows is rejected before it reaches Mongo.
