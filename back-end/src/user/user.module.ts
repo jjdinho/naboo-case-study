@@ -7,7 +7,10 @@ import { UserService } from './user.service';
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
-  exports: [UserService],
+  // MongooseModule is exported so a module needing the User document itself,
+  // rather than user business logic, shares this registration instead of
+  // declaring the schema again.
+  exports: [UserService, MongooseModule],
   providers: [UserService],
 })
 export class UserModule {}
