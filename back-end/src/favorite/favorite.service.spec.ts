@@ -4,7 +4,6 @@ import { Types } from 'mongoose';
 import { Activity } from 'src/activity/activity.schema';
 import { ActivityService } from 'src/activity/activity.service';
 import { TestModule, closeInMongodConnection } from 'src/test/test.module';
-import { UserModule } from 'src/user/user.module';
 import { UserService } from 'src/user/user.service';
 import { FavoriteModule } from './favorite.module';
 import { FavoriteService } from './favorite.service';
@@ -21,7 +20,7 @@ describe('FavoriteService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestModule, FavoriteModule, UserModule],
+      imports: [TestModule, FavoriteModule],
     }).compile();
 
     service = module.get<FavoriteService>(FavoriteService);
