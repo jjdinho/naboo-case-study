@@ -1,5 +1,4 @@
 import gql from "graphql-tag";
-import OwnerFragment from "./owner";
 
 const ActivityFragment = gql`
   fragment Activity on Activity {
@@ -9,11 +8,7 @@ const ActivityFragment = gql`
     name
     price
     createdAt
-    owner {
-      ...Owner
-    }
   }
-  ${OwnerFragment}
 `;
 
 export default ActivityFragment;

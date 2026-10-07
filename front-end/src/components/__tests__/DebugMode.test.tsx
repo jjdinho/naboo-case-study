@@ -19,7 +19,6 @@ const activity: ActivityFragment = {
   price: 50,
   // Built in local time, so the expected text holds in any timezone.
   createdAt: new Date(2026, 8, 23, 14, 32, 5).toISOString(),
-  owner: { firstName: "john", lastName: "doe" },
 };
 
 const userWithRole = (role: Role): GetUserQuery["getMe"] => ({
